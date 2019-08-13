@@ -1,7 +1,7 @@
 <?
 	ob_start();
 	
-	include("dom.php"); // Simple HTML DOM lib
+	include("includes/dom.php"); // Simple HTML DOM lib
 	
 	// Setting the defaults
 	$log = array( );
