@@ -20,4 +20,8 @@ $whoops->register();
 $log = new Logger('log');
 $log->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
 
-$Parser = new ESPNParser("http://robin.local/dummy.html");
+$parser = new ESPNParser("http://robin.local/dummy.html", $log);
+
+echo $parser->getHomeTeamName(ESPNParser::ABBR_NAME);
+echo "<br/>";
+echo $parser->getAwayTeamName(ESPNParser::ABBR_NAME);
