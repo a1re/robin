@@ -1,0 +1,5 @@
+<FilesMatch ^(composer\.(json|lock|phar)$|vendor)$>
+    Deny from all
+</FilesMatch> 
+
+php_flag opcache.enable Off

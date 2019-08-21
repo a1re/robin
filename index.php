@@ -20,8 +20,15 @@ $whoops->register();
 $log = new Logger('log');
 $log->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
 
-$parser = new ESPNParser("http://robin.local/dummy.html", $log);
+try {
+    $parser = new ESPNParser("http://robin.firstandgoal.in/dummy.html", $log);
+    
+    echo "<pre>";
+    echo $parser->getHomeTeamName(ESPNParser::FULL_NAME).PHP_EOL;
+    echo $parser->getAwayTeamName(ESPNParser::FULL_NAME).PHP_EOL;
+    print_r($parser->getAllLeaders());
+    echo "</pre>";
 
-echo $parser->getHomeTeamName(ESPNParser::ABBR_NAME);
-echo "<br/>";
-echo $parser->getAwayTeamName(ESPNParser::ABBR_NAME);
+} catch (Exception $e) {
+    echo "Caught exception: " .  $e->getMessage() . "\n";
+}
