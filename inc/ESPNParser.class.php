@@ -11,6 +11,7 @@ class ESPNParser
     protected $team_name = [ ];
     protected $statistic_leader = [ ];
     protected $score = [ ];
+    protected $quarters = [ ];
     protected $scoring_events = [ ];
     private $logger = false;
     
@@ -24,6 +25,12 @@ class ESPNParser
     const PASSING = "pass";
     const RUSHING = "rush";
     const RECEIVING = "reception";
+    
+    const Q1 = "q1";
+    const Q2 = "q2";
+    const Q3 = "q3";
+    const Q4 = "q4";
+    const OT = "OT";
     
     public function __construct($url, $logger = false)
     {
@@ -83,10 +90,6 @@ class ESPNParser
     */
     public function getTeamName($team = self::HT, $type = self::SHORT_NAME)
     {
-        if(!$this->html) {
-            throw new Exception("Inaccessible page");            
-        }
-        
         if ($team == self::HT) {
             $marker = "home";
             $t = self::HT;
@@ -166,18 +169,14 @@ class ESPNParser
     }
     
     /**
-     * Getting team name from the page
+     * Getting leader name and stats
      * @param const $team — ESPNParser::HT for home team and ESPNParser::AT for away
-     * @param const $type — ESPNParser::FULL_NAME for full name, etc. "Denver Broncos"
-                            ESPNParser::SHORT_NAME for short name, etc. "Denver"
-        
+     * @param const $type — ESPNParser::PASSING for passing stats
+                            ESPNParser::RUSHING for run stats
+                            ESPNParser::RECEIVING for catching stats
     */
     public function getLeader($team = self::HT, $type = self::PASSING)
     {
-        if (!$this->html) {
-            throw new Exception("Inaccessible page");            
-        }
-        
         // Searching for leaders block in page source
         $tag = $this->html->find("div[data-module=teamLeaders]",0);
         
@@ -286,10 +285,12 @@ class ESPNParser
         } else {
             $this->log("No player stats was found (" . $team . ", " . $type . ")");
             return null;
-        }
-        
+        }   
     }
     
+    /**
+     * Getting all ledaers stats — shortcut for getLeader for all stats at once
+    */
     public function getAllLeaders()
     {
         if (count($this->leaders) == 0) {
@@ -297,16 +298,93 @@ class ESPNParser
                 self::HT => [
                     self::PASSING => $this->getLeader(self::HT, self::PASSING),
                     self::RUSHING => $this->getLeader(self::HT, self::RUSHING),
-                    self::RECEIVING => $this->getLeader(self::HT, self::RECEIVING),
+                    self::RECEIVING => $this->getLeader(self::HT, self::RECEIVING)
                 ],
                 self::AT => [
                     self::PASSING => $this->getLeader(self::AT, self::PASSING),
                     self::RUSHING => $this->getLeader(self::AT, self::RUSHING),
-                    self::RECEIVING => $this->getLeader(self::AT, self::RECEIVING),
-                ],
+                    self::RECEIVING => $this->getLeader(self::AT, self::RECEIVING)
+                ]
             ];
         }
 
         return $this->leaders;
+    }
+    
+    public function getScoreEvents()
+    {
+        $scoring_summary = $this->html->find("div[data-module=scoringSummary] div.scoring-summary > table tbody",0);
+        
+        if (!$scoring_summary) {
+            return null;
+        }
+        
+        $scoring_summary = $scoring_summary->find("tr");
+        $current_quarter = Q1;
+        
+        /*
+         * The idiea here is to iterate throue every row of the table. If table
+         * row has "highlight" class and THs iside, it's the internal header
+         * with the name of the quarter. Otherwise, it's a scoring row.
+         */
+        
+        foreach ($scoring_summary as $e) {
+            if(!is_object($e)) {
+                $this->log("Row is not an object");
+                continue;
+            }
+            
+            // If current row has "highlight" class, it's identifier of the quarter
+            if ($e->getAttribute("class") == "highlight") { 
+                $quarter_header = $e->find("th.quarter", 0);
+                
+                if (!$quarter_header) {
+                    $this->log("Row is not an object");
+                    continue;
+                }
+                
+                // Identifying the current quater
+                if(count($quarter_header) == 2 && $quarter_header[1] == "quarter") {
+                    switch ($quarter_header[0]) {
+                        case 'first':
+                            $current_quarter = Q1;
+                            break;
+                        case 'second':
+                            $current_quarter = Q2;
+                            break;
+                        case 'third':
+                            $current_quarter = Q3;
+                            break;
+                        case 'fourth':
+                            $current_quarter = Q4;
+                            break;
+                    }
+                } else {
+                     //if second word isn't "quarter", it's overtime
+                    $current_quarter = OT;
+                }
+                
+            } else {
+                $scoring_event = $this->getScoringEventDescription($current_quarter, $e);
+                
+                if($scoring_event) {
+                    $this->scoring_events[] = $scoring_event;
+                }
+            }
+        } 
+    }
+        
+    /*
+     * While parsing scoring row, we're filling the array with data. Every
+     * item is an array itself with structure:
+     * 
+     * 
+     * 
+     * 
+     * 
+     */
+    private function getScoringEventDescription($quarter, $tag)
+    {
+        //sdf   
     }
 }
