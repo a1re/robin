@@ -9,7 +9,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\BrowserConsoleHandler;
 
-use Inc\ESPNParser;
+use Robin\ESPNParser;
 
 // Setting up fancy error reporting
 $whoops = new \Whoops\Run;

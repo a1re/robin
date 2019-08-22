@@ -2,5 +2,13 @@
     "require": {
         "monolog/monolog": "^1.24",
         "filp/whoops": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Robin\\": "inc/"
+        },
+        "files": [
+            "inc/simplehtmldom_1_9/simple_html_dom.php"
+        ]
     }
 }
