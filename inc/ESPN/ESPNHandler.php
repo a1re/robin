@@ -59,7 +59,7 @@ class ESPNHandler
     
     public function __get($name)
     {
-        if (!is_numeric(name)) {
+        if (!is_numeric($name)) {
             $capitalized_string = ucwords(str_replace("_", " ", $name));
             $name = implode("", explode(" ", $capitalized_string));
         }

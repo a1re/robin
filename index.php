@@ -19,7 +19,7 @@ $logger->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
 
 
 try {
-    $parser = new Parser("http://robin.firstandgoal.in/dummy.html");
+    $parser = new Parser("http://robin.local/dummy.html");
 
     echo "<pre>";
     echo $parser->engine->home_team_full_name;
@@ -31,5 +31,5 @@ try {
 */
 
 } catch (Exception $e) {
-    echo "Caught exception: " .  $e->getMessage() . "\n";
+    echo "Caught exception: " .  $e->getMessage() . " (line: " . $e->getLine() .")\n";
 }
