@@ -4,7 +4,7 @@ namespace Robin\ESPN;
 
 use \Exception;
 
-class ESPNGamecast
+class Gamecast
 {
     protected $html;
     

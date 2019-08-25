@@ -30,6 +30,6 @@ try {
     print_r($parser->engine->getAllLeaders());
 */
 
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     echo "Caught exception: " .  $e->getMessage() . " (line: " . $e->getLine() .")\n";
 }

@@ -9,7 +9,7 @@ class Parser
 {
     use Logger;
     
-    public $engine_list = [ "\\ESPN\\ESPNHandler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
+    public $engine_list = [ "\\ESPN\\Handler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
     public $engine;
     
     public function __construct($url)
