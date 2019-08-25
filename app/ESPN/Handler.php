@@ -3,11 +3,13 @@
 namespace Robin\ESPN;
 
 use \Exception;
+use \Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Interfaces\ParsingEngine;
 
  /**
   * Handler class for parsing ESPN page of different types. Each page type has
-  * it's own class for parsing and subclasses for objects
+  * its own class for parsing and subclasses for objects
   * 
   * @package    Robin
   * @subpackage ESPN
@@ -40,10 +42,9 @@ class Handler
       *
       * @return Object
       */
-    private function getPageEngine()
+    private function getPageEngine(): ParsingEngine
     {
         $title = $this->html->find("head title", 0);
-        $engine = false;
         
         if ($title) {
             foreach ($this->pages_engines as $name => $engine) {
@@ -56,9 +57,20 @@ class Handler
                     return new $engine_name($this->html);
                 }
             }
-            throw new Exception("No engine found for page \"" . $title->plaintext ."\"");
+            throw new ParsingException("No engine found for page \"" . $title->plaintext ."\"");
         }
-        throw new Exception("Undefined page");
+        throw new ParsingException("Undefined page");
+    }
+    
+     /**
+      * Gets an object for parsing page based on title and self::$pages_engines
+      *
+      * @return string with page type or FAL
+      */
+    public function getPageType(): string
+    {
+        $title = $this->html->find("head title", 0);
+        
     }
     
     public function __get($name)

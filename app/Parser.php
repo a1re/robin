@@ -3,6 +3,7 @@
 namespace Robin;
 
 use \Exception;
+use \Exceptions\ParsingException;
 use \Robin\Logger;
 
 class Parser
