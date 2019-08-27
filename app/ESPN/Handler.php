@@ -3,7 +3,7 @@
 namespace Robin\ESPN;
 
 use \Exception;
-use \Exceptions\ParsingException;
+use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Interfaces\ParsingEngine;
 
@@ -23,7 +23,7 @@ class Handler
     
     // Array for pages and classes names for parsing
     public $pages_engines = [ "Game Summary" => "Gamecast",
-                              "Polls and Rankings" => "Rankings",
+                              "College Football Rankings" => "Rankings",
                               "Standings" => "Standings" ];
                                    
     public function __construct($html)
@@ -34,15 +34,39 @@ class Handler
         
         $this->html = $html;
         
-        $this->engine = $this->getPageEngine();
+        $this->engine = $this->getEngine();
     }
     
      /**
       * Gets an object for parsing page based on title and self::$pages_engines
       *
-      * @return Object
+      * @return Object with ParsingEngine interface
       */
-    private function getPageEngine(): ParsingEngine
+    private function getEngine(): ParsingEngine
+    {
+        $title = $this->html->find("head title", 0);
+        
+        $engine_name = $this->getType();
+        
+        if ($engine_name) {
+            
+            $engine = "\\Robin\\ESPN\\" . $engine_name;
+            
+            if (class_exists($engine)) {
+                return new $engine($this->html);
+            }
+            
+            throw new ParsingException("No engine found for page \"" . $engine ."\"");
+        }
+        throw new ParsingException("Undefined page");
+    }
+    
+     /**
+      * Parses header of the page and returns its type according to 
+      *
+      * @return string with page type or NULL
+      */
+    public function getType(): ?string
     {
         $title = $this->html->find("head title", 0);
         
@@ -51,26 +75,12 @@ class Handler
                 if (mb_strpos($title->plaintext, $name) === false) {
                     continue;
                 }
-                $engine_name = "\\Robin\\ESPN\\" . $engine;
                 
-                if (class_exists($engine_name)) {
-                    return new $engine_name($this->html);
-                }
+                return $engine;
             }
-            throw new ParsingException("No engine found for page \"" . $title->plaintext ."\"");
         }
-        throw new ParsingException("Undefined page");
-    }
-    
-     /**
-      * Gets an object for parsing page based on title and self::$pages_engines
-      *
-      * @return string with page type or FAL
-      */
-    public function getPageType(): string
-    {
-        $title = $this->html->find("head title", 0);
         
+        return null;        
     }
     
     public function __get($name)

@@ -18,11 +18,19 @@ $logger = new Logger('log');
 $logger->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
 
 
+$url = [ "http://robin.firstandgoal.in/dummy.html",
+         "https://www.espn.com/nfl/game/_/gameId/401128157",
+         "https://www.espn.com/college-football/rankings",
+         "https://www.espn.com/college-football/standings" ];
+$url = $url[0];
+
 try {
-    $parser = new Parser("http://robin.local/dummy.html");
+    $parser = new Parser($url);
+
 
     echo "<pre>";
-    echo $parser->engine->home_team_full_name;
+    echo $parser->page->getType();
+    echo var_dump($parser->page->engine->getMethods());
     echo "</pre>";
 /*
     echo $parser->engine->getHomeTeamName(0).PHP_EOL;
@@ -30,6 +38,6 @@ try {
     print_r($parser->engine->getAllLeaders());
 */
 
-} catch (\Throwable $e) {
-    echo "Caught exception: " .  $e->getMessage() . " (line: " . $e->getLine() .")\n";
+} catch (Exception $e) {
+    echo "Caught exception: " .  $e->getMessage() . "\n";
 }

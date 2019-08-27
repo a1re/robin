@@ -4,6 +4,7 @@ namespace Robin\ESPN;
 
 use \Exception;
 use \Robin\Interfaces\ParsingEngine;
+use \Robin\Exceptions\ParsingException;
 
 class Gamecast implements ParsingEngine
 {
@@ -25,6 +26,6 @@ class Gamecast implements ParsingEngine
     
     public function getMethods(): array
     {
-        return [ ];
+        return [ "getHomeTeam", "getAwayTeam", "getLeaders", "getScore" ];
     }
 }

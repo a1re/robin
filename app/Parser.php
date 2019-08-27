@@ -11,7 +11,7 @@ class Parser
     use Logger;
     
     public $engine_list = [ "\\ESPN\\Handler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
-    public $engine;
+    public $page;
     
     public function __construct($url)
     {
@@ -45,7 +45,7 @@ class Parser
         
         $html = file_get_html($url);
         
-        $this->engine = new $engine($html);
+        $this->page = new $engine($html);
     }
 
 }
