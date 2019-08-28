@@ -8,7 +8,7 @@ use \Robin\Logger;
 use \Robin\Interfaces\ParsingEngine;
 
  /**
-  * Class for team objects inside ESPN
+  * Class for Team entities inside ESPN
   * 
   * @package    Robin
   * @subpackage ESPN
@@ -37,7 +37,7 @@ class Team
     {
         // If both full and short names are empty, we throw exception
         if (mb_strlen($full_name) == 0 && mb_strlen($short_name) == 0) {
-            throw new ParsingException("No name was provided");
+            throw new Exception("No name was provided");
         }
         
         if (mb_strlen($full_name) == 0) {
@@ -68,7 +68,7 @@ class Team
     public function makeShortName(string $full_name): string
     {
         if (mb_strlen($full_name) == 0) {
-            throw new ParsingException("No name was provided");
+            throw new Exception("No team name was provided");
         }
         
         $name_parts = explode(" ", $full_name);
@@ -125,7 +125,7 @@ class Team
     public function makeAbbr(string $name): string
     {
         if (mb_strlen($name) == 0) {
-            throw new ParsingException("No name was provided");
+            throw new Exception("No name was provided");
         }
         
         $name_parts = explode(" ", $name);

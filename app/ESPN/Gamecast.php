@@ -84,4 +84,11 @@ class Gamecast implements ParsingEngine
         return $this->getTeam("away");
     }
     
+    /**
+     *
+     *
+     *
+     */
+    
+    
 }
