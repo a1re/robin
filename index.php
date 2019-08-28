@@ -20,17 +20,19 @@ $logger->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
 
 $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401128157",
+         "https://www.espn.com/college-football/game/_/gameId/401110723",
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[0];
+$url = $url[2];
 
 try {
     $parser = new Parser($url);
 
 
     echo "<pre>";
-    echo $parser->page->getType();
-    echo var_dump($parser->page->engine->getMethods());
+//    echo $parser->page->getType();
+    echo var_dump($parser->page->engine->getHomeTeam());
+    echo var_dump($parser->page->engine->getAwayTeam());
     echo "</pre>";
 /*
     echo $parser->engine->getHomeTeamName(0).PHP_EOL;

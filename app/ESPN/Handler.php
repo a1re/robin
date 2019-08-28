@@ -7,14 +7,14 @@ use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Interfaces\ParsingEngine;
 
- /**
-  * Handler class for parsing ESPN page of different types. Each page type has
-  * its own class for parsing and subclasses for objects
-  * 
-  * @package    Robin
-  * @subpackage ESPN
-  * @author     Yuriy Marin <yuriy.marin@gmail.com>
-  */
+/**
+ * Handler class for parsing ESPN page of different types. Each page type has
+ * its own class for parsing and subclasses for objects
+ * 
+ * @package    Robin
+ * @subpackage ESPN
+ * @author     Yuriy Marin <yuriy.marin@gmail.com>
+ */
 class Handler
 {
     use Logger; // Trait with logging object, so $this->log(message) is available everywhere
@@ -37,11 +37,11 @@ class Handler
         $this->engine = $this->getEngine();
     }
     
-     /**
-      * Gets an object for parsing page based on title and self::$pages_engines
-      *
-      * @return Object with ParsingEngine interface
-      */
+    /**
+     * Gets an object for parsing page based on title and self::$pages_engines
+     *
+     * @return Object with ParsingEngine interface
+     */
     private function getEngine(): ParsingEngine
     {
         $title = $this->html->find("head title", 0);
@@ -61,11 +61,11 @@ class Handler
         throw new ParsingException("Undefined page");
     }
     
-     /**
-      * Parses header of the page and returns its type according to 
-      *
-      * @return string with page type or NULL
-      */
+    /**
+     * Parses header of the page and returns its type according to 
+     *
+     * @return string with page type or NULL
+     */
     public function getType(): ?string
     {
         $title = $this->html->find("head title", 0);
