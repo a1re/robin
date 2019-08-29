@@ -18,9 +18,19 @@ class Player
 {
     public $first_name = null;
     public $last_name = null;
-    public $stats = [ ];
-    
     private $doubleword_names = [ "Ha Ha" ];
+    private $passing_stats    = [ "attempts" => null, "completions" => null,
+                                  "yards" => null, "td" => null, "int" => null,
+                                  "rating" => null ];
+    private $rushing_stats    = [ "carries" => null, "yards" => null,
+                                  "td" => null, "longest" => null ];
+    private $receiving_stats  = [ "targets" => null, "receptions" => null,
+                                  "yards" => null, "td" => null ];
+    private $fumbles_stats    = [ "lost" => null, "recovered" => null ];
+    private $defensive_stats  = [ "tackles" => null, "solo_tackles" => null,
+                                  "tackles_for_loss" => null, "sacks" => null,
+                                  "interceptions" => null, "pass_deflected" => null,
+                                  "td" => null,  "qb_hits" => null ];
     
     public function __construct(string $f_name, $l_name = null)
     {

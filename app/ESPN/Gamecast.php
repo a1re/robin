@@ -21,11 +21,6 @@ class Gamecast implements ParsingEngine
         $this->html = $html;
     }
     
-    public function getElement(string $name, $args = false)
-    {
-        return stdObject;
-    }
-    
     public function getMethods(): array
     {
         return $this->methods;

@@ -19,8 +19,6 @@ trait Logger
     {
         global $logger;
         
-        echo "oo";
-        
         $this->logger = $logger;
         
         if (!is_object($logger) || get_class($logger) != "Monolog\Logger") {

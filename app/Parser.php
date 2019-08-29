@@ -19,12 +19,12 @@ class Parser
         
         // Checking if we have SimpleHTMLDOM loaded
         if (!function_exists("file_get_html")) {
-            throw new Exception("Parsing function not defined");
+            throw new ParsingException("Parsing function not defined");
         }
         
         // Checking if we creating object with a valid URL
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new Exception('Invalid URL');
+            throw new ParsingException('Invalid URL');
         }
         $domain = parse_url($url, PHP_URL_HOST);
         

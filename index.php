@@ -24,7 +24,7 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/college-football/game/_/gameId/401110723",
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[2];
+$url = $url[0];
 
 try {
     $parser = new Parser($url);

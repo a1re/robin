@@ -49,7 +49,6 @@ class Handler
         $engine_name = $this->getType();
         
         if ($engine_name) {
-            
             $engine = "\\Robin\\ESPN\\" . $engine_name;
             
             if (class_exists($engine)) {
