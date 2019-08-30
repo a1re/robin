@@ -36,7 +36,7 @@ class Player
                        "punt_returns" => [ "number" => null, "yards" => null, "td" => null],
                        "kicking"      => [ "fg_attempts" => null, "fg_scores" => null,
                                            "fg_longest" => null, "xp_attempts" => null,
-                                           "xp_scores" => null],
+                                           "xp_scores" => null ],
                        "punting"      => [ "number" => null, "yards" => null,
                                            "longest" => null, "touchbacks" => null]
                      ];
@@ -62,7 +62,6 @@ class Player
      *
      * @param   string  $full_name     Full name, preferably with space inside
      */
-
     private function splitFullName(string $full_name): void
     {
         if(mb_strlen($full_name) === 0) {
@@ -90,59 +89,78 @@ class Player
         $this->last_name = join(" ", $name_parts);
     }
     
-
     /**
-     * Magic function, that used to set stats. If it starts with "set" and camelCase
-     * notation is used, then it got splitted into words. Words are used to find the
-     * right stats name and the first argument is used as value, e.g.:
+     * Magic function for getters and setter for the stats, that allows to call
+     * $this->stats properties with cameCase notation, e.g. setRushingCarries(valuer)
+     * for setting $this->stats["rushing"]["carries"] or getDefensiveTacklesForLoss()
+     * for accessing $this->stats["defensive"]["tackles_for_loss"]. Getter also
+     * can return group of stats, e.g. getPassingStats() for all passing indexes and
+     * even getStats() for all stats.
      *
-     * \Robin\ESPN\Player::setRushingCarries() => $this->stas["rushing"]["carries"]
+     * Setter accept only numeric arguement:
+     * @param   numeric     $value      Stats value
+     *
+     * Getter optionaly accept bolean argument
+     * @param   bool        $show_nulls True if values in array should exclude nulls and 0
+     *
+     * @return  mixed       Array for group of stats, numeric for particular index
      */
-    
     public function __call(string $name, array $arguments)
     {
+        // Identifying setter function by "set" prefix
         if (substr($name, 0, 3) == "set") {
-            $variable = &$this->camelCaseToStatsVariable($name, "set");
-            $variable = is_numeric($arguments[0]) ? $arguments[0] : null;
+            try {
+                $variable = &$this->camelCaseToStatsVariable($name, "set");
+                $variable = is_numeric($arguments[0]) ? $arguments[0] : null;
+            } catch (Exception $e) {
+                // Do nothing
+            }
         }
         
+        // Identifying getter function by "get" prefix
         if (substr($name, 0, 3) == "get") {
-            return $this->camelCaseToStatsVariable($name, "get");
-        }
-        
-    }
-    
-    public function getStatsArray(bool $show_nulls = false): array
-    {
-        $ret = [ ];
-        
-        foreach ($this->stats as $category_name => $category_array) {
+            // We cut out "Stats" postfix to make clear name method like getPassingStats work
+            if (strtolower(substr($name, -5)) == "stats") {
+                $name = substr($name, 0, -5);
+            }
             
-            $category_ret = [ ];
-            
-            foreach ($category_array as $index_key => $index_value) {
-                if ($show_nulls == true && ($index_value === null || $index_value == 0)) {
-                    $category_ret[$index_key] = 0;
-                } else if ($index_value > 0) {
-                    $category_ret[$index_key] = $index_value;
+            // If an argument is passed and is true, we show all values, incl.
+            // nulls and 0, otherwise only those with numbers
+            try {
+                if (array_key_exists(0, $arguments) && $arguments[0] == true) {
+                    return $this->camelCaseToStatsVariable($name, "get");
+                } else {
+                    $stats = $this->camelCaseToStatsVariable($name, "get");
+                    
+                    // Recursive nulls removal
+                    if (is_array($stats)) {
+                        $stats  = $this->removeNulls($stats);
+                    }
+                    
+                    return $stats;
                 }
-                
-            }
-            
-            if (count($category_ret) > 0) {
-                $ret[$category_name] = $category_ret;
+            } catch (Exception $e) {
+                // Do nothing
+                return null;
             }
         }
-        
-        return $ret;
     }
     
+    /**
+     * Takes camelCased name from magic method __call, split it into elements and
+     * searches through $this->stats for necessary variable. Returns reference for
+     * the value or generates Exception if it is not found; 
+     *
+     * @param   string  $name   camelCased name from __call
+     * @param   string  $prefix (optional) prefix, e.g. "set" or "get"
+     * @return  reference       referense for the found value
+     */
     private function & camelCaseToStatsVariable(string $name, string $prefix = null)
     {
         $null = null;
 
         if (strlen($name) == 0) {
-            return $null;
+            throw new Exception("Argument \"name\" is missing");
         }
         
         if (strlen($prefix) > 0) {
@@ -155,12 +173,16 @@ class Player
             array_shift($words);
         }
         
-        if (count($words) < 2) {
-            if (array_key_exists($words[0], $this->stats)) {
-                return $this->stats[$words[0]];
+        if (count($words) == 0) {
+            return $this->stats;
+        }
+        
+        if (count($words) == 1) {
+            $key = strtolower($words[0]);
+            if (array_key_exists($key, $this->stats)) {
+                return $this->stats[$key];
             }
-            
-            return $null;
+            throw new Exception("No stats section is found");
         }
         
         // indexes 0 and 1 exist in words by if statement above
@@ -195,6 +217,30 @@ class Player
             }
         }
         
-        return $null;
+        throw new Exception("No stats value is found");
+    }
+
+    /**
+     * Recursively run through array and keep only values, that are not NULL and 0
+     *
+     * @param   array   $arr    Array to be cleaned
+     * @return  array   Array without null values
+     */  
+    private function removeNulls(array $arr): array
+    {
+        foreach ($arr as $key=>$value) {
+            if (is_array($value)) {
+                $arr[$key] = $this->removeNulls($value);
+                
+                if (count($arr[$key]) == 0) {
+                    unset($arr[$key]);
+                }
+            } else {
+                if ($value === null || $value == 0) {
+                    unset($arr[$key]);
+                }
+            }
+        }
+        return $arr;
     }
 }
