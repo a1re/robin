@@ -3,18 +3,21 @@
 namespace Robin\ESPN;
 
 use \Exception;
+use \ReflectionClass;
+use \ReflectionMethod;
 use \Robin\Logger;
 use \Robin\Interfaces\ParsingEngine;
 use \Robin\Exceptions\ParsingException;
 use \Robin\ESPN\Team;
 use \Robin\ESPN\Player;
+use \Robin\ESPN\ScoringEvent;
 
 class Gamecast implements ParsingEngine
 {
     use Logger;
     
     protected $html;
-    protected $methods = [ "getHomeTeam", "getAwayTeam", "getLeaders", "getScore" ];
+    private $methods;
     
     public function __construct($html)
     {
@@ -27,13 +30,22 @@ class Gamecast implements ParsingEngine
     
     public function getMethods(): array
     {
+        $class = new ReflectionClass($this);
+        $methods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
+        
+        foreach ($methods as $method_object) {
+            if (!in_array($method_object->name, [ "log", "__construct" ])) {
+               $this->methods[] = $method_object->name; 
+            }
+        }
+        
         return $this->methods;
     }
     
     /**
-     * Getting team obkect from the page
-     * @param   string   $marker    Class name in page source code (usually "home" or "away")
+     * Getting team object from the page
      *
+     * @param   string   $marker    Class name in page source code (usually "home" or "away")
      * @return  Team                Instance of Team class
      */
     private function getTeam(string $marker): Team
@@ -64,31 +76,12 @@ class Gamecast implements ParsingEngine
     }
     
     /**
-     * Public shortcut for getTeam with home marker
+     * Getting Player entity with name and stats of the "Game Leaders" section
      *
-     * @return  Team                Instance of Team class
-     */    
-    public function getHomeTeam(): Team
-    {
-        return $this->getTeam("home");
-    }
-    
-    /**
-     * Public shortcut for getTeam with away marker
-     *
-     * @return  Team                Instance of Team class
-     */  
-    public function getAwayTeam(): Team
-    {
-        return $this->getTeam("away");
-    }
-    
-    /**
-     *
-     *
-     *
+     * @param   string  $category   DOM dataset key in page source code for stats category
+     * @param   string  $team       DOM dataset key in page source code for team type (usually "home" or "away")
+     * @return  Player              Instance of Player class
      */
-    
     private function getLeader(string $category, string $team): Player
     {
         //Parsing player name with DOM request with $category and $team markers
@@ -138,10 +131,18 @@ class Gamecast implements ParsingEngine
     }
     
     /**
+     * Public shortcut for getTeam with home and away markers
+     *
+     * @return  Team                Instance of Team class
+     */
+    public function getHomeTeam(): Team { return $this->getTeam("home"); }
+    public function getAwayTeam(): Team { return $this->getTeam("away"); }
+    
+    /**
      * Public shortcuts for getLeader(); with preset names
      *
      * @return  Player  Instance of Player class
-     */  
+     */
     public function getHomePassingLeader(): Player   { return $this->getLeader("passing", "home");   }
     public function getHomeRushingLeader(): Player   { return $this->getLeader("rushing", "home");   }
     public function getHomeReceivingLeader(): Player { return $this->getLeader("receiving", "home"); }

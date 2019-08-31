@@ -33,7 +33,6 @@ class Handler
         }
         
         $this->html = $html;
-        
         $this->engine = $this->getEngine();
     }
     
@@ -45,7 +44,6 @@ class Handler
     private function getEngine(): ParsingEngine
     {
         $title = $this->html->find("head title", 0);
-        
         $engine_name = $this->getType();
         
         if ($engine_name) {
@@ -54,7 +52,6 @@ class Handler
             if (class_exists($engine)) {
                 return new $engine($this->html);
             }
-            
             throw new ParsingException("No engine found for page \"" . $engine ."\"");
         }
         throw new ParsingException("Undefined page");
