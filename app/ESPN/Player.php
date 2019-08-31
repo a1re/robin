@@ -16,12 +16,14 @@ use \Robin\Interfaces\ParsingEngine;
   */
 class Player
 {
+    use Logger;
+    
     public  $first_name = null;
     public  $last_name = null;
     private $doubleword_names = [ "Ha Ha" ];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
-                                           "int" => null, "rating" => null ],
+                                           "interceptions" => null, "rating" => null ],
                        "rushing"      => [ "carries" => null, "yards" => null,
                                            "td" => null, "longest" => null ],
                        "receiving"    => [ "targets" => null, "receptions" => null,
@@ -91,11 +93,11 @@ class Player
     
     /**
      * Magic function for getters and setter for the stats, that allows to call
-     * $this->stats properties with cameCase notation, e.g. setRushingCarries(valuer)
-     * for setting $this->stats["rushing"]["carries"] or getDefensiveTacklesForLoss()
+     * $this->stats properties with cameCase notation, e.g. $this->setRushingCarries(valuer)
+     * for setting $this->stats["rushing"]["carries"] or $this->getDefensiveTacklesForLoss()
      * for accessing $this->stats["defensive"]["tackles_for_loss"]. Getter also
-     * can return group of stats, e.g. getPassingStats() for all passing indexes and
-     * even getStats() for all stats.
+     * can return group of stats, e.g. $this->getPassingStats() for all passing
+     * indexes and even $this->getStats() for all stats.
      *
      * Setter accept only numeric arguement:
      * @param   numeric     $value      Stats value

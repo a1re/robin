@@ -16,6 +16,8 @@ use \Robin\Interfaces\ParsingEngine;
   */
 class Team
 {
+    use Logger;
+    
     public $full_name;
     public $short_name;
     public $abbr;
