@@ -20,6 +20,8 @@ class Player
     
     public  $first_name = null;
     public  $last_name = null;
+    public  $position = null;
+    public  $number = null;
     private $doubleword_names = [ "Ha Ha" ];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
@@ -227,7 +229,7 @@ class Player
      *
      * @param   array   $arr    Array to be cleaned
      * @return  array   Array without null values
-     */  
+     */
     private function removeNulls(array $arr): array
     {
         foreach ($arr as $key=>$value) {
@@ -244,5 +246,46 @@ class Player
             }
         }
         return $arr;
+    }
+
+    /**
+     * Returns full name of the player in one string
+     *
+     * @param   bool    $include_position_and_number    include into name position
+     *                                                  and number, e.g. "QB Tom Brady (#12)"
+     *                                                  instead of just "Tom Brady"
+     * @return  string  Full player name
+     */
+    public function getFullName(bool $include_position_and_number = false): string
+    {
+        $name = "";
+        if ($include_position_and_number && mb_strlen($this->position) > 0) {
+            $name .= $this->position . " ";
+        }
+        
+        if (mb_strlen($this->first_name)) {
+           $name .= $this->first_name . " "; 
+        }
+        
+        $name .= $this->last_name;
+        
+        if ($include_position_and_number && is_int($this->number) && $this->number > 0) {
+            $name .= " (#" . $this->number . ")";
+        }
+        return $name;
+    }
+
+    /**
+     * Returns clipped name of the player in one string
+     *
+     * @return  string  Player name with first name clipped to one letter, e.g. "T. Brady"
+     */
+    public function getClippedName(): string
+    {
+        $first_letter = mb_substr($this->first_name, 0, 1);
+        if (mb_strlen($first_letter) > 0) {
+             $first_letter .= ". ";
+        }
+        return $first_letter . $this->last_name;
     }
 }
