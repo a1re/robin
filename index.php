@@ -17,15 +17,22 @@ $whoops->register();
 // Setting up monolog
 $logger = new Logger('log');
 $logger->pushHandler(new BrowserConsoleHandler(Logger::DEBUG));
-
+//$logger->pushHandler(new StreamHandler('logs/dev.log', Logger::DEBUG));
 
 $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401128157",
          "https://www.espn.com/college-football/game/_/gameId/401110723",
          "https://www.espn.com/college-football/game/_/gameId/401117856",
+         "https://www.espn.com/college-football/game/_/gameId/401012356", // [4] LSU vs Texas A&M game (7 ovetimes)
+         "https://www.espn.com/nfl/game/_/gameId/401030824", // [5] Broncos vs Chargers (defensive 2 points)
+         "https://www.espn.com/nfl/game/_/gameId/401030701", // [6] Redskins vs Panthers
+         "https://www.espn.com/nfl/game/_/gameId/401030726", // [7] Packers vs Bears
+         "https://www.espn.com/nfl/game/_/gameId/401030952", // [8] Giants vs Buccaneers
+         "https://www.espn.com/nfl/game/_/gameId/401030950", // [9] 49ers vs Seahawks
+         "https://www.espn.com/nfl/game/_/gameId/340202007", // [10] Broncos vs Seahawks (SB 2014)
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[3];
+$url = $url[4];
 
 try {
     $parser = new Parser($url);
@@ -45,46 +52,46 @@ try {
     $away_team_passing_leader = $parser->page->engine->getAwayPassingLeader();
     $away_team_rushing_leader = $parser->page->engine->getAwayRushingLeader();
     $away_team_receiving_leader = $parser->page->engine->getAwayReceivingLeader();
-    
+
     echo PHP_EOL . "<strong>Home team leaders</strong>" . PHP_EOL;
-    echo "Passing: " . $home_team_passing_leader->first_name . " ";
-    echo $home_team_passing_leader->last_name . " (";
+    echo "Passing: " . $home_team_passing_leader->getClippedName() . " (";
     foreach ($home_team_passing_leader->getPassingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
-    echo "Rushing: " . $home_team_rushing_leader->first_name . " ";
-    echo $home_team_rushing_leader->last_name . " (";
+    echo "Rushing: " . $home_team_rushing_leader->getClippedName() . " (";
     foreach ($home_team_rushing_leader->getRushingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
-    echo "Receiving: " . $home_team_receiving_leader->first_name . " ";
-    echo $home_team_receiving_leader->last_name . " (";
+    echo "Receiving: " . $home_team_receiving_leader->getClippedName() . " (";
     foreach ($home_team_receiving_leader->getReceivingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
     
     echo PHP_EOL . "<strong>Away team leaders</strong>" . PHP_EOL;
-    echo "Passing: " . $away_team_passing_leader->first_name . " ";
-    echo $away_team_passing_leader->last_name . " (";
+    echo "Passing: " . $away_team_passing_leader->getClippedName() . " (";
     foreach ($away_team_passing_leader->getPassingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
-    echo "Rushing: " . $away_team_rushing_leader->first_name . " ";
-    echo $away_team_rushing_leader->last_name . " (";
+    echo "Rushing: " . $away_team_rushing_leader->getClippedName() . " (";
     foreach ($away_team_rushing_leader->getRushingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
-    echo "Receiving: " . $away_team_receiving_leader->first_name . " ";
-    echo $away_team_receiving_leader->last_name . " (";
+    echo "Receiving: " . $away_team_receiving_leader->getClippedName() . " (";
     foreach ($away_team_receiving_leader->getReceivingStats() as $name => $value) {
         echo $value . " " . $name ." ";
     }
     echo ")" . PHP_EOL;
+    
+    echo PHP_EOL . "<strong>Scoring events</strong>" . PHP_EOL;
+    $scoring_events = $parser->page->engine->getScoringEvents();
+    
+    print_r($scoring_events);
+    
     
     echo "</pre>";
 /*
