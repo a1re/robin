@@ -217,6 +217,8 @@ class Gamecast implements ParsingEngine
             $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
             $scoring_description = $scoring_description ? $scoring_description->innertext : '';
             
+            $matches = [ ];
+            $regexp = [ "name" => "([a-zA-Z-.\' ]+)" ];
             if (abs($delta) == 7) {
                 
             } else if (abs($delta) == 6) {

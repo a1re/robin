@@ -30,9 +30,10 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030952", // [8] Giants vs Buccaneers
          "https://www.espn.com/nfl/game/_/gameId/401030950", // [9] 49ers vs Seahawks
          "https://www.espn.com/nfl/game/_/gameId/340202007", // [10] Broncos vs Seahawks (SB 2014)
+         "https://www.espn.com/nfl/game/_/gameId/401030791", // [11] Texans vs Giants (double names)
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[4];
+$url = $url[11];
 
 try {
     $parser = new Parser($url);
