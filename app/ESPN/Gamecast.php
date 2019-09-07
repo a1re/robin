@@ -240,6 +240,19 @@ class Gamecast implements ParsingEngine
         return [ ];
     }
     
+    private function decomposeTD(string $scoring_description): ?object
+    {
+        $methods = [ self::RUN => "",
+                     self::RECEPTION => "",
+                     self::INTERCEPTION_RETURN => "",
+                     self::KICKOFF_RETURN => "",
+                     self::PUNT_RETURN => "",
+                     self::FUMBLE_RETURN => "",
+                     self::FUMBLE_RECOVERY => ""];
+        $name_regexp = "";
+        
+    }
+    
     /**
      * Parses quarter header and returns one of ScoringEvent constants, that
      * could be used to identify the quarter;
