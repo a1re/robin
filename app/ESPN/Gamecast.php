@@ -23,6 +23,9 @@ class Gamecast implements ParsingEngine
     private $away_team;
     public $players = [ ];
     
+    protected $name_pattern_2w = "[a-zA-Z-.\']+\s[a-zA-Z-.\']+";
+    protected $name_pattern_3w = "[a-zA-Z-.\']+\s[a-zA-Z-.\']+[a-zA-Z-.\'\s]*";
+    
     public function __construct($html)
     {
         if (!$html || !in_array(get_class($html), [ "simple_html_dom", "simple_html_dom_node"])) {
@@ -30,6 +33,8 @@ class Gamecast implements ParsingEngine
         }
         
         $this->html = $html;
+        $this->getHomeTeam();
+        $this->getAwayTeam();
     }
     
     public function getMethods(): array
@@ -94,26 +99,9 @@ class Gamecast implements ParsingEngine
         $player_name_tag = $this->html->find($player_name_query, 0);
         $player_name = $player_name_tag ? $player_name_tag->getAttribute("title") : null;
         
-        $player = null;
-        
-        // Checking if player is among existing player objects
-        if (!array_key_exists($team, $this->players)) {
-            $this->players[$team] = [ ];
-        }
-        
-        if (array_key_exists($player_name, $this->players[$team])) {
-            $player_object = $this->players[$team][$player_name];
-            if (is_object($player_object) && (new \ReflectionClass($player_object))->getShortName() == "Player") {
-                $player = $player_object;
-            } 
-        }
-        
-        if (!$player) {
-            // If $player_name is null or zero length, Player constructor will throw exception
-            $player = new Player($player_name);
-            $this->players[$team][$player_name] = $player;
-        }
-        
+        //Adds player to array of Players or returns instance of existing Player
+        $player = $this->addPlayer($player_name, $team);
+                
         //Parsing player stats with DOM request with $category and $team markers
         $player_stat_query  = "div[data-module=teamLeaders] div[data-stat-key=";
         $player_stat_query .= $category . "Yards] ." . $team . "-leader .player-stats";
@@ -170,6 +158,8 @@ class Gamecast implements ParsingEngine
         $current_home_score = 0;
         $current_away_score = 0;
         
+        $events = [ ];
+        
         foreach ($scoring_summary as $e) {
             if (!is_object($e)) {
                 $this->log("Row is not an object");
@@ -182,10 +172,10 @@ class Gamecast implements ParsingEngine
                 if ($quarter_name) {
                     $current_quarter = $this->getQuarterByName(trim($quarter_name->innertext));                
                 }
-                continue;
+                continue; // We skip to next iteration as here will be no score details
             }
             
-            // In scoring summary on ESPN home and away columns are swipped
+            // In scoring summary on ESPN home and away columns are swapped
             $new_home_score = $e->find("td.away-score", 0);
             if ($new_home_score) {
                 $new_home_score = (int) $e->find("td.away-score", 0)->innertext;
@@ -209,48 +199,461 @@ class Gamecast implements ParsingEngine
             // Delta is a key identifier of who scored and how many points. If it's
             // positive, then home team is the scorer, if negative — away. To work
             // with points, we take abs($delta);
-            $delta = $new_home_score-$current_home_score-$new_away_score+$current_away_score;
-            
-            // Based on delta, we get Team object
-            $scoring_team = ($delta < 0) ? $this->getAwayTeam() : $this->getHomeTeam();
+            //
+            // In case both teams scores increased in one event, we take bigger
+            // and nullify delta of other.
+            if ($new_home_score-$current_home_score > $new_away_score-$current_away_score) {
+                $delta = $new_home_score-$current_home_score;
+                $new_away_score = $current_away_score;
+                $scoring_team = $this->getHomeTeam();
+            } else {
+                $delta = (-1)*($new_away_score-$current_away_score);
+                $new_home_score = $current_home_score;
+                $scoring_team = $this->getAwayTeam();
+            }
             
             $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
             $scoring_description = $scoring_description ? $scoring_description->innertext : '';
             
-            $matches = [ ];
-            $regexp = [ "name" => "([a-zA-Z-.\' ]+)" ];
-            if (abs($delta) == 7) {
-                
-            } else if (abs($delta) == 6) {
-                
-            } else if (abs($delta) == 8) {
-                
-            } else if (abs($delta) == 3) {
-                
-            } else if (abs($delta) == 2) {
-                
+            echo $current_quarter ." ". $scoring_team->abbr . " " . $scoring_description . " " . $new_home_score . ":" . $new_away_score . " (" . $delta .")" . PHP_EOL;
+            
+            // Decomposing extea point first to cut off conversion description from touchdown
+            if(in_array(abs($delta), [6,7,8])) {
+                $conversion_event = $this->decomposeXP($scoring_description, $scoring_team);
+                $scoring_description = trim(str_replace([$conversion_event->origin,"(",")"], "", $scoring_description));
+
+                $conversion_event->setQuarter($current_quarter);
+                $conversion_event->setScore($new_home_score, $new_away_score);
             }
             
-            var_dump($current_quarter ." ". $scoring_team->abbr . " " . $scoring_description . " " . $new_home_score . ":" . $new_away_score . " (" . $delta .")");
+            if (abs($delta) == 7) {
+                $adjusted_home_score = ($delta < 0) ? $new_home_score : $new_home_score-1;
+                $adjusted_away_score = ($delta > 0) ? $new_away_score : $new_away_score-1;
+                
+                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
+                $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+            } else if (abs($delta) == 6) {
+                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
+                $scoring_event->setScore($new_home_score, $new_away_score);
+            } else if (abs($delta) == 8) {
+                $adjusted_home_score = ($delta < 0) ? $new_home_score : $new_home_score-2;
+                $adjusted_away_score = ($delta > 0) ? $new_away_score : $new_away_score-2;
+                
+                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
+                $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+            } else if (abs($delta) == 3) {
+                $scoring_event = $this->decomposeFG($scoring_description, $scoring_team);
+                $scoring_event->setScore($new_home_score, $new_away_score);
+            } else {
+                // It's definetely not a touchdown or field goal. We need to parse additional description
+                $score_type = $e->find("td.game-details div.table-row .score-type",0);
+                
+                if ($score_type === null) {
+                    continue; // no description of two points, quite the iteration
+                }
+                
+                if ($score_type->innertext == "SF") {
+                    $scoring_event = $this->decomposeSF($scoring_description, $scoring_team);
+                    $scoring_event->setScore($new_home_score, $new_away_score);
+                } else if ($score_type->innertext == "D2P") {
+                    $scoring_event = $this->decomposeD2P($scoring_description, $scoring_team);
+                    $scoring_event->setScore($new_home_score, $new_away_score);
+                } else {
+                    continue; // no idea of what is this, quite the iteration
+                }
+            }
             
             $current_home_score = $new_home_score;
             $current_away_score = $new_away_score;
-        } 
+            
+            $events[] = $scoring_event;
+            if (isset($conversion_event)) {
+                $events[] = $conversion_event;
+                unset($conversion_event);
+            }
+        }
         
-        return [ ];
+        $r = [ ];
+        foreach ($events as $e) {
+            $d = $e->type . " " . $e->team->abbr;
+            if ($e->getAuthor() !== null) {
+                $d .= " " . $e->getAuthor();
+            }
+            $d .= " " . $e->method;
+            if ($e->getPasser() !== null) {
+                $d .= " (" . $e->getPasser().")";
+            }
+            if($e->is_good == false) {
+                $d .= " failed";
+            }
+            $d .= " " . $e->home_score . ":" . $e->away_score;
+            $r[] = $d;
+        }
+        
+        return $r;
+    }
+
+    /**
+     * Converts textual touchdown description to instance of ESPN\ScoringEvent. Takes
+     * scoring event description, preferably with cut off conversion description, e.g.
+     * "Samson Ebukam 25 Yd Interception Return". If string will contain conversion description
+     * not wrapped by brackets, it may cause inaccuracies in parsing and decomposing
+     * into ESPN\ScoringEvent object. It'sbetter to use ESPN\Gamecast::decomposeXP first
+     * and cut off the extra-point(s) part by origin decomposed by decomposeXP.
+     *
+     * @param   string  $scoring_description   Full textual description of TD, incl. XP
+     * @param   Team    $team                  Instance of Team that scored points
+     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     */
+    
+    private function decomposeTD(string $scoring_description, Team $team): ?ScoringEvent
+    {
+        $matches = [ ];
+        
+        // Run play touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\srun";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RUN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Pass play touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\spass\sfrom\s(" . $this->name_pattern_3w . ")";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RECEPTION);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(2, $matches) && mb_strlen($matches[2]) > 0) {
+                $e->setPasser($this->addPlayer($matches[2], $team));
+            }
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Interception return touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sinterception\sreturn";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::INTERCEPTION_RETURN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Fumble return touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sfumble\sreturn";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RETURN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Fumble recovery touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sfumble\srecovery";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RECOVERY);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Punt return touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\spunt\sreturn";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::PUNT_RETURN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Kickoff return touchdown
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\skickoff\sreturn";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::KICKOFF_RETURN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Converts textual extra point description to instance of ESPN\ScoringEvent. Takes
+     * full description, e.g. "Samson Ebukam 25 Yd Interception Return (Greg Zuerlein Kick)",
+     * parses only extra point description (incl. two-point conversions) and decomposes
+     * into ESPN\ScoringEvent object. Some of the descriptions on ESPN lacks brackets, this
+     * method works with such cases, but the first name mentioned in XP cannot more then
+     * two words (e.g. "Will Fuller V run" or "Patrick Mahomes III pass to Tyreek Hill"
+     * may cause inaccuracies.
+     *
+     * @param   string  $scoring_description   Full textual description of TD, incl. XP
+     * @param   Team    $team                  Instance of Team that scored points
+     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     */
+    private function decomposeXP(string $scoring_description, Team $team): ?ScoringEvent
+    {
+        $matches = [ ];
+            
+        // One-point conversion is good
+        if (preg_match("/\(?(" . $this->name_pattern_2w .")\skick\)?/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::XP, ScoringEvent::KICK);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if (array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // One-point conversion failed
+        if (preg_match("/\(?(" . $this->name_pattern_2w .")\sPAT\sfailed\)?/i", $scoring_description, $matches)) {     
+            $e = new ScoringEvent(ScoringEvent::XP, ScoringEvent::KICK);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            $e->setResult(false);
+            
+            if (array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Two-point conversion failed
+        if (preg_match("/\(?(two-point\s(pass|run)?\s?conversion\sfailed)\)?/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::OTHER);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            $e->setResult(false);
+            return $e;
+        }
+        
+        // Two-point pass conversion with brackets
+        $pattern = "\((" . $this->name_pattern_3w . ")\spass\sto\s";
+        $pattern .= "(" . $this->name_pattern_3w . ")\sfor\stwo-point\sconversion\)";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RECEPTION);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setPasser($this->addPlayer($matches[1], $team));
+            }
+            
+            if(array_key_exists(2, $matches) && mb_strlen($matches[2]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[2], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Two-point run conversion with brackets
+        $pattern = "\((" . $this->name_pattern_3w . ")\srun\sfor\stwo-point\sconversion\)";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RUN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if (array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        // Two-point pass conversion with no brackets
+        $pattern = "(" . $this->name_pattern_2w . ")\spass\sto\s";
+        $pattern .= "(" . $this->name_pattern_3w . ")\sfor\stwo-point\sconversion";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RECEPTION);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if (array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setPasser($this->addPlayer($matches[1], $team));
+            }
+            
+            if (array_key_exists(2, $matches) && mb_strlen($matches[2]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[2], $team));
+            }
+            return $e;
+        }
+        
+        // Two-point run conversion with no brackets
+        $pattern = "(" . $this->name_pattern_2w . ")\srun\sfor\stwo-point\sconversion";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RUN);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Converts textual field goal description to instance of ESPN\ScoringEvent
+     *
+     * @param   string  $scoring_description   Full textual description of FG
+     * @param   Team    $team                  Instance of Team that scored points
+     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     */
+    private function decomposeFG(string $scoring_description, Team $team): ?ScoringEvent
+    {
+        $matches = [ ];
+        
+        $pattern = "(" . $this->name_pattern_2w . ")\s\d{1,2}\syds?\sfield\sgoal";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::FG, ScoringEvent::KICK);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Converts textual safety description to instance of ESPN\ScoringEvent
+     *
+     * @param   string  $scoring_description   Full textual description of SF
+     * @param   Team    $team                  Instance of Team that scored points
+     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     */
+    private function decomposeSF(string $scoring_description, Team $team): ?ScoringEvent
+    {
+        $matches = [ ];
+        
+        $e = new ScoringEvent(ScoringEvent::SF, ScoringEvent::OTHER);
+        $e->setTeam($team);
+        $e->setOrigin($scoring_description);
+            
+        return $e;
+    }
+
+    /**
+     * Rare case of converting textual defensive two-points description
+     * to instance of ESPN\ScoringEvent
+     *
+     * @param   string  $scoring_description   Full textual description of D2P
+     * @param   Team    $team                  Instance of Team that scored points
+     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     */
+    private function decomposeD2P(string $scoring_description, Team $team): ?ScoringEvent
+    {
+        $matches = [ ];
+        
+        $pattern = "(" . $this->name_pattern_3w . ")\sdefensive\spat\sconversion";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $e = new ScoringEvent(ScoringEvent::D2P, ScoringEvent::OTHER);
+            $e->setTeam($team);
+            $e->setOrigin($matches[0]);
+            
+            if(array_key_exists(1, $matches) && mb_strlen($matches[1]) > 0) {
+                $e->setAuthor($this->addPlayer($matches[1], $team));
+            }
+            
+            return $e;
+        }
+        
+        return null;
     }
     
-    private function decomposeTD(string $scoring_description): ?object
+    /**
+     * Adds player to list if players in $this->players as an instance
+     * of ESPN\Player class or retrives one and returns it.
+     *
+     * Players in $this->players are stored in subarrays where first level keys
+     * are team names, second level keys are player full names and variables are
+     * instances of Player class, e.g.:
+     * $this->players["New England Patriots"]["Tom Brady"] = \ESPN\Player();
+     *
+     * @param   string  $player_name   Full player name as string
+     * @param   string  $team          "home" or "away" strings or instances equal to
+     *                                 $this->home_team or $this->away_team
+     * @return  Player  Instance of Player class with player info
+     */
+    private function addPlayer(string $player_name, $team): Player
     {
-        $methods = [ self::RUN => "",
-                     self::RECEPTION => "",
-                     self::INTERCEPTION_RETURN => "",
-                     self::KICKOFF_RETURN => "",
-                     self::PUNT_RETURN => "",
-                     self::FUMBLE_RETURN => "",
-                     self::FUMBLE_RECOVERY => ""];
-        $name_regexp = "";
+        if ($team === "home" || $team === $this->home_team) {
+            $team = $this->getHomeTeam()->full_name;
+        } else if ($team === "away" || $team === $this->away_team) {
+            $team = $this->getAwayTeam()->full_name;
+        } else {
+            throw new ParsingException("Unknown team for player to be added");
+        }
         
+        $player = null;
+        
+        // Checking if player is among existing player objects
+        if (!array_key_exists($team, $this->players)) {
+            $this->players[$team] = [ ];
+        }
+        
+        if (array_key_exists($player_name, $this->players[$team])) {
+            $player_object = $this->players[$team][$player_name];
+            if (is_object($player_object) && (new \ReflectionClass($player_object))->getShortName() == "Player") {
+                $player = $player_object;
+            } 
+        }
+        
+        if (!$player) {
+            // If $player_name is null or zero length, Player constructor will throw exception
+            $player = new Player($player_name);
+            $this->players[$team][$player_name] = $player;
+        }
+
+        return $player;
     }
     
     /**
