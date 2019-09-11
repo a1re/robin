@@ -62,11 +62,10 @@ class ScoringEvent
     /**
      * Class constructor
      *
-     * @param   string  $full_name      Full name of the team
-     * @param   string  $short_name     (optional) Short name of the team
-     * @param   string  $abbr           (optional) Abbreviation of the team
+     * @param   string  $type    (optional) Type of score, must be equal to one of $this->types. TD is default
+     * @param   string  $method  (optional) Method of score, must be equal to one of $this->types. RUN is default
      */
-    public function __construct(string $type = self::TD, string $method = self::RUSH)
+    public function __construct(string $type = self::TD, string $method = self::RUN)
     {
         if (in_array($type, $this->types)) {
             $this->type = $type;
@@ -81,6 +80,16 @@ class ScoringEvent
         }
     }
     
+    /**
+     * Setters for $this->team, $this->author, $this->passer, $this->is_good,
+     * $this->origin, $this->home_score, $this->away_score, $this->quarter.
+     *
+     * setTeam() accpets instance of Team as param
+     * setAuthor() and setPasser() accepts instances of Player
+     * setResult() accepts boolean value
+     * setScore() accepts two ints, first — for home score, second — for away
+     * setQuarter() accepts one of ScoringEvent::Q1, Q2, Q3, Q4, OT constants.
+     */
     public function setTeam(Team $team): void { $this->team = $team; }
     public function setAuthor(Player $player): void { $this->author = $player; }
     public function setPasser(Player $player): void { $this->passer = $player; }
@@ -100,6 +109,9 @@ class ScoringEvent
         }
     }
     
+    /**
+     * Returns short name (string) of scored team or null
+     */
     public function getTeamName(): ?string
     {
         if ($this->team !== null) {
@@ -109,6 +121,9 @@ class ScoringEvent
         return null;
     }
     
+    /**
+     * Returns abbr name (string) of scored team or null
+     */
     public function getTeamAbbr(): ?string
     {
         if ($this->team !== null) {
@@ -118,6 +133,9 @@ class ScoringEvent
         return null;
     }
     
+    /**
+     * Returns full name (string) of points author or null
+     */
     public function getAuthor(bool $include_position_and_number = false): ?string
     {
         if ($this->author !== null) {
@@ -127,6 +145,9 @@ class ScoringEvent
         return null;
     }
     
+    /**
+     * Returns full name (string) of passer if it wass passing score or null
+     */
     public function getPasser(bool $include_position_and_number = false): ?string
     {
         if ($this->passer !== null) {
