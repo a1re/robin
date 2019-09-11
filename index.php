@@ -25,7 +25,7 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/college-football/game/_/gameId/401117856",
          "https://www.espn.com/college-football/game/_/gameId/401012356", // [4] LSU vs Texas A&M game (7 ovetimes)
          "https://www.espn.com/nfl/game/_/gameId/401030824", // [5] Broncos vs Chargers (defensive 2 points)
-         "https://www.espn.com/nfl/game/_/gameId/401030701", // [6] Redskins vs Panthers
+         "https://www.espn.com/nfl/game/_/gameId/330203025", // [6] 49ers vs Ravens
          "https://www.espn.com/nfl/game/_/gameId/401128173", // [7] Browns vs Lions (safety)
          "https://www.espn.com/nfl/game/_/gameId/401030952", // [8] Giants vs Buccaneers
          "https://www.espn.com/nfl/game/_/gameId/401030950", // [9] 49ers vs Seahawks
@@ -38,7 +38,7 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030917", // [16] Seahawks vs Chiefs (run two-point conversion))
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[5];
+$url = $url[6];
 
 try {
     $parser = new Parser($url);

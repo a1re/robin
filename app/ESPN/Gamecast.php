@@ -219,31 +219,36 @@ class Gamecast implements ParsingEngine
             
             // Decomposing extea point first to cut off conversion description from touchdown
             if(in_array(abs($delta), [6,7,8])) {
-                $conversion_event = $this->decomposeXP($scoring_description, $scoring_team);
-                $scoring_description = trim(str_replace([$conversion_event->origin,"(",")"], "", $scoring_description));
-
-                $conversion_event->setQuarter($current_quarter);
-                $conversion_event->setScore($new_home_score, $new_away_score);
+                if ($conversion_event = $this->decomposeXP($scoring_description, $scoring_team)) {
+                    $scoring_description = trim(str_replace([$conversion_event->origin,"(",")"], "", $scoring_description));
+                    
+                    $conversion_event->setQuarter($current_quarter);
+                    $conversion_event->setScore($new_home_score, $new_away_score);
+                }
             }
             
             if (abs($delta) == 7) {
                 $adjusted_home_score = ($delta < 0) ? $new_home_score : $new_home_score-1;
                 $adjusted_away_score = ($delta > 0) ? $new_away_score : $new_away_score-1;
                 
-                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
-                $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+                if ($scoring_event = $this->decomposeTD($scoring_description, $scoring_team)) {
+                    $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+                }
             } else if (abs($delta) == 6) {
-                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
-                $scoring_event->setScore($new_home_score, $new_away_score);
+                if ($scoring_event = $this->decomposeTD($scoring_description, $scoring_team)) {
+                    $scoring_event->setScore($new_home_score, $new_away_score);
+                }
             } else if (abs($delta) == 8) {
                 $adjusted_home_score = ($delta < 0) ? $new_home_score : $new_home_score-2;
                 $adjusted_away_score = ($delta > 0) ? $new_away_score : $new_away_score-2;
                 
-                $scoring_event = $this->decomposeTD($scoring_description, $scoring_team);
-                $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+                if ($scoring_event = $this->decomposeTD($scoring_description, $scoring_team)) {
+                    $scoring_event->setScore($adjusted_home_score, $adjusted_away_score);
+                }
             } else if (abs($delta) == 3) {
-                $scoring_event = $this->decomposeFG($scoring_description, $scoring_team);
-                $scoring_event->setScore($new_home_score, $new_away_score);
+                if ($scoring_event = $this->decomposeFG($scoring_description, $scoring_team)) {
+                    $scoring_event->setScore($new_home_score, $new_away_score);
+                }
             } else {
                 // It's definetely not a touchdown or field goal. We need to parse additional description
                 $score_type = $e->find("td.game-details div.table-row .score-type",0);
@@ -253,11 +258,17 @@ class Gamecast implements ParsingEngine
                 }
                 
                 if ($score_type->innertext == "SF") {
-                    $scoring_event = $this->decomposeSF($scoring_description, $scoring_team);
-                    $scoring_event->setScore($new_home_score, $new_away_score);
+                    if ($scoring_event = $this->decomposeSF($scoring_description, $scoring_team)) {
+                        $scoring_event->setScore($new_home_score, $new_away_score);
+                    }
                 } else if ($score_type->innertext == "D2P") {
-                    $scoring_event = $this->decomposeD2P($scoring_description, $scoring_team);
-                    $scoring_event->setScore($new_home_score, $new_away_score);
+                    if ($scoring_event = $this->decomposeD2P($scoring_description, $scoring_team)) {
+                        $scoring_event->setScore($new_home_score, $new_away_score);
+                    }
+                } else if (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
+                    if ($scoring_event = $this->decomposeXP($scoring_description, $scoring_team)) {
+                        $scoring_event->setScore($new_home_score, $new_away_score);
+                    }
                 } else {
                     continue; // no idea of what is this, quite the iteration
                 }
@@ -266,7 +277,10 @@ class Gamecast implements ParsingEngine
             $current_home_score = $new_home_score;
             $current_away_score = $new_away_score;
             
-            $events[] = $scoring_event;
+            if (isset($scoring_event)) {
+                $events[] = $scoring_event;
+                unset($scoring_event);
+            }
             if (isset($conversion_event)) {
                 $events[] = $conversion_event;
                 unset($conversion_event);
@@ -311,7 +325,7 @@ class Gamecast implements ParsingEngine
         $matches = [ ];
         
         // Run play touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\srun";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\srun";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RUN);
             $e->setTeam($team);
@@ -325,7 +339,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Pass play touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\spass\sfrom\s(" . $this->name_pattern_3w . ")";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\spass\sfrom\s(" . $this->name_pattern_3w . ")";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RECEPTION);
             $e->setTeam($team);
@@ -343,7 +357,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Interception return touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sinterception\sreturn";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sinterception\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::INTERCEPTION_RETURN);
             $e->setTeam($team);
@@ -357,7 +371,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Fumble return touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sfumble\sreturn";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sfumble\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RETURN);
             $e->setTeam($team);
@@ -371,7 +385,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Fumble recovery touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\sfumble\srecovery";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sfumble\srecovery";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RECOVERY);
             $e->setTeam($team);
@@ -385,7 +399,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Punt return touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\spunt\sreturn";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\spunt\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::PUNT_RETURN);
             $e->setTeam($team);
@@ -399,7 +413,7 @@ class Gamecast implements ParsingEngine
         }
         
         // Kickoff return touchdown
-        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\syds?\skickoff\sreturn";
+        $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\skickoff\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::KICKOFF_RETURN);
             $e->setTeam($team);
@@ -431,9 +445,8 @@ class Gamecast implements ParsingEngine
     private function decomposeXP(string $scoring_description, Team $team): ?ScoringEvent
     {
         $matches = [ ];
-            
         // One-point conversion is good
-        if (preg_match("/\(?(" . $this->name_pattern_2w .")\skick\)?/i", $scoring_description, $matches)) {
+        if (preg_match("/\(?(" . $this->name_pattern_2w .")\skick(?:\sis\sgood)?\)?/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::XP, ScoringEvent::KICK);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
@@ -547,7 +560,7 @@ class Gamecast implements ParsingEngine
     {
         $matches = [ ];
         
-        $pattern = "(" . $this->name_pattern_2w . ")\s\d{1,2}\syds?\sfield\sgoal";
+        $pattern = "(" . $this->name_pattern_2w . ")\s\d{1,2}\sya?r?ds?\sfield\sgoal";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
             $e = new ScoringEvent(ScoringEvent::FG, ScoringEvent::KICK);
             $e->setTeam($team);
