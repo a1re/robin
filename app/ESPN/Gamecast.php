@@ -206,7 +206,7 @@ class Gamecast implements ParsingEngine
                 $delta = $new_home_score-$current_home_score;
                 $new_away_score = $current_away_score;
                 $scoring_team = $this->getHomeTeam();
-            } else {
+            } else if ($new_home_score-$current_home_score < $new_away_score-$current_away_score) {
                 $delta = (-1)*($new_away_score-$current_away_score);
                 $new_home_score = $current_home_score;
                 $scoring_team = $this->getAwayTeam();
@@ -215,7 +215,7 @@ class Gamecast implements ParsingEngine
             $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
             $scoring_description = $scoring_description ? $scoring_description->innertext : '';
             
-            echo $current_quarter ." ". $scoring_team->abbr . " " . $scoring_description . " " . $new_home_score . ":" . $new_away_score . " (" . $delta .")" . PHP_EOL;
+//            echo $current_quarter ." ". $scoring_team->abbr . " " . $scoring_description . " " . $new_home_score . ":" . $new_away_score . " (" . $delta .")" . PHP_EOL;
             
             // Decomposing extea point first to cut off conversion description from touchdown
             if(in_array(abs($delta), [6,7,8])) {
@@ -266,6 +266,8 @@ class Gamecast implements ParsingEngine
                         $scoring_event->setScore($new_home_score, $new_away_score);
                     }
                 } else if (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
+                    var_dump($scoring_description);
+                    var_dump($scoring_team->abbr);
                     if ($scoring_event = $this->decomposeXP($scoring_description, $scoring_team)) {
                         $scoring_event->setScore($new_home_score, $new_away_score);
                     }
@@ -278,6 +280,7 @@ class Gamecast implements ParsingEngine
             $current_away_score = $new_away_score;
             
             if (isset($scoring_event)) {
+                $scoring_event->setQuarter($current_quarter);
                 $events[] = $scoring_event;
                 unset($scoring_event);
             }
@@ -287,24 +290,7 @@ class Gamecast implements ParsingEngine
             }
         }
         
-        $r = [ ];
-        foreach ($events as $e) {
-            $d = $e->method . " " . $e->getTeamAbbr();
-            if ($e->getAuthor() !== null) {
-                $d .= " " . $e->getAuthor();
-            }
-            $d .= " " . $e->type;
-            if ($e->getPasser() !== null) {
-                $d .= " " . $e->getPasser();
-            }
-            if($e->isGood() == false) {
-                $d .= " failed";
-            }
-            $d .= " " . $e->home_score . ":" . $e->away_score;
-            $r[] = $d;
-        }
-        
-        return $r;
+        return $events;
     }
 
     /**

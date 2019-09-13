@@ -38,7 +38,7 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030917", // [16] Seahawks vs Chiefs (run two-point conversion))
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[6];
+$url = $url[15];
 
 try {
     $parser = new Parser($url);
@@ -95,9 +95,21 @@ try {
     
     echo PHP_EOL . "<strong>Scoring events</strong>" . PHP_EOL;
     $scoring_events = $parser->page->engine->getScoringEvents();
-    
-    print_r($scoring_events);
-    
+    foreach ($scoring_events as $e) {
+        echo $e->quarter . " " . $e->method . "\t" . $e->getTeamAbbr() . "\t";
+        if ($e->getAuthor() !== null) {
+            echo $e->getAuthor() . " ";
+        }
+        echo $e->type . " ";
+        if ($e->getPasser() !== null) {
+            echo $e->getPasser() . " ";
+        }
+        if($e->isGood() == false) {
+            echo "failed ";
+        }
+        echo "– " . $e->home_score . ":" . $e->away_score;
+        echo PHP_EOL;
+    }
     
     echo "</pre>";
 /*

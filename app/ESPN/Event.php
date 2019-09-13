@@ -51,7 +51,7 @@ class Event
     public $origin = null;
     public $home_score;
     public $away_score;
-    
+    public $quarter;
     public $method;
     public $type;
 
