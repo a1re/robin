@@ -9,13 +9,13 @@ use \Robin\ESPN\Team;
 use \Robin\ESPN\Player;
 
  /**
-  * Class for Scoring Events entities inside ESPN
+  * Class for Events entities inside ESPN
   * 
   * @package    Robin
   * @subpackage ESPN
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class ScoringEvent
+class Event
 {
     use Logger;
     
@@ -43,38 +43,54 @@ class ScoringEvent
     const Q4 = "Q4";
     const OT = "OT";
     
-    public $types = [ self::TD, self::FG, self::SF, self::XP, self::X2P, self::D2P ];
-    public $methods = [ self::RUN, self::RECEPTION, self::INTERCEPTION_RETURN,
-                        self::KICKOFF_RETURN, self::PUNT_RETURN, self::FUMBLE_RETURN,
-                        self::FUMBLE_RECOVERY, self::SAFETY, self::KICK, self::OTHER ];
+    public $methods = [ self::TD, self::FG, self::SF, self::XP, self::X2P, self::D2P ];
+    public $types = [ self::RUN, self::RECEPTION, self::INTERCEPTION_RETURN,
+                      self::KICKOFF_RETURN, self::PUNT_RETURN, self::FUMBLE_RETURN,
+                      self::FUMBLE_RECOVERY, self::SAFETY, self::KICK, self::OTHER ];
 
-    public $is_good = true;
     public $origin = null;
-    public $method;
     public $home_score;
     public $away_score;
-    public $type;
     
-    public $author;
-    public $passer;
-    public $team;
+    public $method;
+    public $type;
+
+    private $is_good = true;
+    private $is_score;
+    private $author;
+    private $passer;
+    private $team;
     
     /**
      * Class constructor
      *
-     * @param   string  $type    (optional) Type of score, must be equal to one of $this->types. TD is default
-     * @param   string  $method  (optional) Method of score, must be equal to one of $this->types. RUN is default
+     * @param   string  $type    Type of play, must be equal to one of $this->types. RUN is default
+     * @param   string  $method  (optional) Method of score, must be equal to one of $this->mothods. TD is default
      */
-    public function __construct(string $type = self::TD, string $method = self::RUN)
-    {
+    public function __construct(string $type = self::RUN, $method = null)
+    {   
         if (in_array($type, $this->types)) {
             $this->type = $type;
         } else {
-            throw new ParsingException("Unknown scoring type");
+            throw new ParsingException("Unknown play type");
         }
         
+        if ($method !== null) {
+            $this->setScoringMethod($method);
+        }
+    }
+    
+    
+    /**
+     * Setter for $this->method. Sets scoring method and $this->is_score to true
+     *
+     * @param   string   $method   Method of score, must be equal to one of $this->mothods. TD is default
+     */
+    public function setScoringMethod(string $method = self::TD)
+    {
         if (in_array($method, $this->methods)) {
             $this->method = $method;
+            $this->is_score = true;
         } else {
             throw new ParsingException("Unknown scoring method");
         }
@@ -155,6 +171,14 @@ class ScoringEvent
         }
         
         return null;
+    }
+    
+    /**
+     * Returns boolean value of $this->is_good
+     */
+    public function isGood(): bool
+    {
+        return (bool) $this->is_good;
     }
     
 }

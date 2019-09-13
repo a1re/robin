@@ -10,7 +10,7 @@ use \Robin\Interfaces\ParsingEngine;
 use \Robin\Exceptions\ParsingException;
 use \Robin\ESPN\Team;
 use \Robin\ESPN\Player;
-use \Robin\ESPN\ScoringEvent;
+use \Robin\ESPN\Event;
 
 class Gamecast implements ParsingEngine
 {
@@ -140,7 +140,7 @@ class Gamecast implements ParsingEngine
     }
     
     /**
-     * Parsing scoring summary section and getting array of instances of ScoringEvent
+     * Parsing scoring summary section and getting array of instances of Event
      *
      * @return  array   Ordered list of scoring events
      */
@@ -154,7 +154,7 @@ class Gamecast implements ParsingEngine
         }
         
         $scoring_summary = $scoring_summary->find("tr");
-        $current_quarter = ScoringEvent::Q1;
+        $current_quarter = Event::Q1;
         $current_home_score = 0;
         $current_away_score = 0;
         
@@ -289,15 +289,15 @@ class Gamecast implements ParsingEngine
         
         $r = [ ];
         foreach ($events as $e) {
-            $d = $e->type . " " . $e->team->abbr;
+            $d = $e->method . " " . $e->getTeamAbbr();
             if ($e->getAuthor() !== null) {
                 $d .= " " . $e->getAuthor();
             }
-            $d .= " " . $e->method;
+            $d .= " " . $e->type;
             if ($e->getPasser() !== null) {
-                $d .= " (" . $e->getPasser().")";
+                $d .= " " . $e->getPasser();
             }
-            if($e->is_good == false) {
+            if($e->isGood() == false) {
                 $d .= " failed";
             }
             $d .= " " . $e->home_score . ":" . $e->away_score;
@@ -308,26 +308,26 @@ class Gamecast implements ParsingEngine
     }
 
     /**
-     * Converts textual touchdown description to instance of ESPN\ScoringEvent. Takes
+     * Converts textual touchdown description to instance of ESPN\Event. Takes
      * scoring event description, preferably with cut off conversion description, e.g.
      * "Samson Ebukam 25 Yd Interception Return". If string will contain conversion description
      * not wrapped by brackets, it may cause inaccuracies in parsing and decomposing
-     * into ESPN\ScoringEvent object. It'sbetter to use ESPN\Gamecast::decomposeXP first
+     * into ESPN\Event object. It'sbetter to use ESPN\Gamecast::decomposeXP first
      * and cut off the extra-point(s) part by origin decomposed by decomposeXP.
      *
      * @param   string  $scoring_description   Full textual description of TD, incl. XP
      * @param   Team    $team                  Instance of Team that scored points
-     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
     
-    private function decomposeTD(string $scoring_description, Team $team): ?ScoringEvent
+    private function decomposeTD(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
         
         // Run play touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\srun";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RUN);
+            $e = new Event(Event::RUN, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -341,7 +341,7 @@ class Gamecast implements ParsingEngine
         // Pass play touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\spass\sfrom\s(" . $this->name_pattern_3w . ")";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::RECEPTION);
+            $e = new Event(Event::RECEPTION, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -359,7 +359,7 @@ class Gamecast implements ParsingEngine
         // Interception return touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sinterception\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::INTERCEPTION_RETURN);
+            $e = new Event(Event::INTERCEPTION_RETURN, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -373,7 +373,7 @@ class Gamecast implements ParsingEngine
         // Fumble return touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sfumble\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RETURN);
+            $e = new Event(Event::FUMBLE_RETURN, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -387,7 +387,7 @@ class Gamecast implements ParsingEngine
         // Fumble recovery touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\sfumble\srecovery";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::FUMBLE_RECOVERY);
+            $e = new Event(Event::FUMBLE_RECOVERY, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -401,7 +401,7 @@ class Gamecast implements ParsingEngine
         // Punt return touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\spunt\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::PUNT_RETURN);
+            $e = new Event(Event::PUNT_RETURN, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -415,7 +415,7 @@ class Gamecast implements ParsingEngine
         // Kickoff return touchdown
         $pattern = "(" . $this->name_pattern_3w . ")\s\d{1,3}\sya?r?ds?\skickoff\sreturn";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::TD, ScoringEvent::KICKOFF_RETURN);
+            $e = new Event(Event::KICKOFF_RETURN, Event::TD);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -430,24 +430,24 @@ class Gamecast implements ParsingEngine
     }
 
     /**
-     * Converts textual extra point description to instance of ESPN\ScoringEvent. Takes
+     * Converts textual extra point description to instance of ESPN\Event. Takes
      * full description, e.g. "Samson Ebukam 25 Yd Interception Return (Greg Zuerlein Kick)",
      * parses only extra point description (incl. two-point conversions) and decomposes
-     * into ESPN\ScoringEvent object. Some of the descriptions on ESPN lacks brackets, this
+     * into ESPN\Event object. Some of the descriptions on ESPN lacks brackets, this
      * method works with such cases, but the first name mentioned in XP cannot more then
      * two words (e.g. "Will Fuller V run" or "Patrick Mahomes III pass to Tyreek Hill"
      * may cause inaccuracies.
      *
      * @param   string  $scoring_description   Full textual description of TD, incl. XP
      * @param   Team    $team                  Instance of Team that scored points
-     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
-    private function decomposeXP(string $scoring_description, Team $team): ?ScoringEvent
+    private function decomposeXP(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
         // One-point conversion is good
         if (preg_match("/\(?(" . $this->name_pattern_2w .")\skick(?:\sis\sgood)?\)?/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::XP, ScoringEvent::KICK);
+            $e = new Event(Event::KICK, Event::XP);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -460,7 +460,7 @@ class Gamecast implements ParsingEngine
         
         // One-point conversion failed
         if (preg_match("/\(?(" . $this->name_pattern_2w .")\sPAT\sfailed\)?/i", $scoring_description, $matches)) {     
-            $e = new ScoringEvent(ScoringEvent::XP, ScoringEvent::KICK);
+            $e = new Event(Event::KICK, Event::XP);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             $e->setResult(false);
@@ -474,7 +474,7 @@ class Gamecast implements ParsingEngine
         
         // Two-point conversion failed
         if (preg_match("/\(?(two-point\s(pass|run)?\s?conversion\sfailed)\)?/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::OTHER);
+            $e = new Event(Event::OTHER, Event::X2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             $e->setResult(false);
@@ -485,7 +485,7 @@ class Gamecast implements ParsingEngine
         $pattern = "\((" . $this->name_pattern_3w . ")\spass\sto\s";
         $pattern .= "(" . $this->name_pattern_3w . ")\sfor\stwo-point\sconversion\)";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RECEPTION);
+            $e = new Event(Event::RECEPTION, Event::X2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -503,7 +503,7 @@ class Gamecast implements ParsingEngine
         // Two-point run conversion with brackets
         $pattern = "\((" . $this->name_pattern_3w . ")\srun\sfor\stwo-point\sconversion\)";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RUN);
+            $e = new Event(Event::RUN, Event::X2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -518,7 +518,7 @@ class Gamecast implements ParsingEngine
         $pattern = "(" . $this->name_pattern_2w . ")\spass\sto\s";
         $pattern .= "(" . $this->name_pattern_3w . ")\sfor\stwo-point\sconversion";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RECEPTION);
+            $e = new Event(Event::RECEPTION, Event::X2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -535,7 +535,7 @@ class Gamecast implements ParsingEngine
         // Two-point run conversion with no brackets
         $pattern = "(" . $this->name_pattern_2w . ")\srun\sfor\stwo-point\sconversion";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::X2P, ScoringEvent::RUN);
+            $e = new Event(Event::RUN, Event::X2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -550,19 +550,19 @@ class Gamecast implements ParsingEngine
     }
 
     /**
-     * Converts textual field goal description to instance of ESPN\ScoringEvent
+     * Converts textual field goal description to instance of ESPN\Event
      *
      * @param   string  $scoring_description   Full textual description of FG
      * @param   Team    $team                  Instance of Team that scored points
-     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
-    private function decomposeFG(string $scoring_description, Team $team): ?ScoringEvent
+    private function decomposeFG(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
         
         $pattern = "(" . $this->name_pattern_2w . ")\s\d{1,2}\sya?r?ds?\sfield\sgoal";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::FG, ScoringEvent::KICK);
+            $e = new Event(Event::KICK, Event::FG);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -577,17 +577,17 @@ class Gamecast implements ParsingEngine
     }
 
     /**
-     * Converts textual safety description to instance of ESPN\ScoringEvent
+     * Converts textual safety description to instance of ESPN\Event
      *
      * @param   string  $scoring_description   Full textual description of SF
      * @param   Team    $team                  Instance of Team that scored points
-     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
-    private function decomposeSF(string $scoring_description, Team $team): ?ScoringEvent
+    private function decomposeSF(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
         
-        $e = new ScoringEvent(ScoringEvent::SF, ScoringEvent::OTHER);
+        $e = new Event(Event::OTHER, Event::SF);
         $e->setTeam($team);
         $e->setOrigin($scoring_description);
             
@@ -596,19 +596,19 @@ class Gamecast implements ParsingEngine
 
     /**
      * Rare case of converting textual defensive two-points description
-     * to instance of ESPN\ScoringEvent
+     * to instance of ESPN\Event
      *
      * @param   string  $scoring_description   Full textual description of D2P
      * @param   Team    $team                  Instance of Team that scored points
-     * @return  ScoringEvent  Instance of ESPN\ScoringEvent class with decomposed info.
+     * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
-    private function decomposeD2P(string $scoring_description, Team $team): ?ScoringEvent
+    private function decomposeD2P(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
         
         $pattern = "(" . $this->name_pattern_3w . ")\sdefensive\spat\sconversion";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-            $e = new ScoringEvent(ScoringEvent::D2P, ScoringEvent::OTHER);
+            $e = new Event(Event::OTHER, Event::D2P);
             $e->setTeam($team);
             $e->setOrigin($matches[0]);
             
@@ -670,29 +670,29 @@ class Gamecast implements ParsingEngine
     }
     
     /**
-     * Parses quarter header and returns one of ScoringEvent constants, that
+     * Parses quarter header and returns one of Event constants, that
      * could be used to identify the quarter;
      *
-     * @return  string  quarter identifier equal to ScoringEvent::Q1/Q2/Q3/Q4/OT
+     * @return  string  quarter identifier equal to Event::Q1/Q2/Q3/Q4/OT
      */
     private function getQuarterByName(string $name = null): string
     {
         if (mb_strlen($name) == 0) {
-            return ScoringEvent::Q1;
+            return Event::Q1;
         }
         
         $quarter_header = explode(" ", $name);
         
         if (count($quarter_header) == 2 && mb_strtolower($quarter_header[1]) == "quarter") {
             switch ($quarter_header[0]) {
-                case 'first':   return ScoringEvent::Q1;
-                case 'second':  return ScoringEvent::Q2;
-                case 'third':   return ScoringEvent::Q3;
-                case 'fourth':  return ScoringEvent::Q4;
+                case 'first':   return Event::Q1;
+                case 'second':  return Event::Q2;
+                case 'third':   return Event::Q3;
+                case 'fourth':  return Event::Q4;
             }
         }
         
-        return ScoringEvent::OT;
+        return Event::OT;
     }
     
     /**
