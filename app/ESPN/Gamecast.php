@@ -52,39 +52,6 @@ class Gamecast implements ParsingEngine
     }
     
     /**
-     * Getting team object from the page
-     *
-     * @param   string   $marker    Class name in page source code (usually "home" or "away")
-     * @return  Team                Instance of Team class
-     */
-    private function getTeam(string $marker): Team
-    {
-        // Taking team names from HTML
-        $first_name = $this->html->find("div.competitors div." . $marker . " a.team-name .long-name", 0);
-        $last_name = $this->html->find("div.competitors div." . $marker . " a.team-name .short-name", 0);
-        $abbr_name = $this->html->find("div.competitors div." . $marker . " a.team-name .abbrev", 0);
-        
-        $full_name = "";
-        $short_name = "";
-        $abbr = "";
-        
-        if ($first_name != null) {
-            // If block with both city and name was found
-            if ($last_name != null) {
-                $full_name = $first_name->plaintext . ' ' . $last_name->plaintext;
-            }
-            
-            $short_name = $first_name->plaintext;
-        }
-        
-        if ($abbr_name != null) {
-            $abbr = $abbr_name->plaintext;
-        }
-        
-        return new Team($full_name, $short_name, $abbr);
-    }
-    
-    /**
      * Getting Player entity with name and stats of the "Game Leaders" section
      *
      * @param   string  $category   DOM dataset key in page source code for stats category
@@ -137,6 +104,56 @@ class Gamecast implements ParsingEngine
             }
         }
         return $player;
+    }
+    
+    /**
+     * Public shortcut for getTeam with home marker
+     *
+     * @return  Team    Instance of Team class
+     */
+    public function getHomeTeam(): Team
+    {
+        if (!(is_object($this->home_team) && (new \ReflectionClass($this->home_team))->getShortName() == "Team")) {
+            $this->home_team = $this->getTeam("home");
+        }
+        
+        return $this->home_team;
+    }
+    
+    /**
+     * Public shortcut for getTeam with away marker
+     *
+     * @return  Team    Instance of Team class
+     */
+    public function getAwayTeam(): Team
+    {
+        if (!(is_object($this->away_team) && (new \ReflectionClass($this->away_team))->getShortName() == "Team")) {
+            $this->away_team = $this->getTeam("away");
+        }
+        
+        return $this->away_team;
+    }
+    
+    /**
+     * Public shortcuts for getLeader(); with preset names
+     *
+     * @return  Player  Instance of Player class
+     */
+    public function getHomePassingLeader(): Player   { return $this->getLeader("passing", "home");   }
+    public function getHomeRushingLeader(): Player   { return $this->getLeader("rushing", "home");   }
+    public function getHomeReceivingLeader(): Player { return $this->getLeader("receiving", "home"); }
+    public function getAwayPassingLeader(): Player   { return $this->getLeader("passing", "away");   }
+    public function getAwayRushingLeader(): Player   { return $this->getLeader("rushing", "away");   }
+    public function getAwayReceivingLeader(): Player { return $this->getLeader("receiving", "away"); }
+    
+    /**
+     * Parsing scoring summary section and getting array of instances of Event
+     *
+     * @return  array   Ordered list of scoring events
+     */
+    public function getScore()
+    {
+        
     }
     
     /**
@@ -305,7 +322,6 @@ class Gamecast implements ParsingEngine
      * @param   Team    $team                  Instance of Team that scored points
      * @return  Event  Instance of ESPN\Event class with decomposed info.
      */
-    
     private function decomposeTD(string $scoring_description, Team $team): ?Event
     {
         $matches = [ ];
@@ -656,6 +672,39 @@ class Gamecast implements ParsingEngine
     }
     
     /**
+     * Getting team object from the page
+     *
+     * @param   string   $marker    Class name in page source code (usually "home" or "away")
+     * @return  Team                Instance of Team class
+     */
+    private function getTeam(string $marker): Team
+    {
+        // Taking team names from HTML
+        $first_name = $this->html->find("div.competitors div." . $marker . " a.team-name .long-name", 0);
+        $last_name = $this->html->find("div.competitors div." . $marker . " a.team-name .short-name", 0);
+        $abbr_name = $this->html->find("div.competitors div." . $marker . " a.team-name .abbrev", 0);
+        
+        $full_name = "";
+        $short_name = "";
+        $abbr = "";
+        
+        if ($first_name != null) {
+            // If block with both city and name was found
+            if ($last_name != null) {
+                $full_name = $first_name->plaintext . ' ' . $last_name->plaintext;
+            }
+            
+            $short_name = $first_name->plaintext;
+        }
+        
+        if ($abbr_name != null) {
+            $abbr = $abbr_name->plaintext;
+        }
+        
+        return new Team($full_name, $short_name, $abbr);
+    }
+    
+    /**
      * Parses quarter header and returns one of Event constants, that
      * could be used to identify the quarter;
      *
@@ -680,45 +729,5 @@ class Gamecast implements ParsingEngine
         
         return Event::OT;
     }
-    
-    /**
-     * Public shortcut for getTeam with home marker
-     *
-     * @return  Team    Instance of Team class
-     */
-    public function getHomeTeam(): Team
-    {
-        if (!(is_object($this->home_team) && (new \ReflectionClass($this->home_team))->getShortName() == "Team")) {
-            $this->home_team = $this->getTeam("home");
-        }
-        
-        return $this->home_team;
-    }
-    
-    /**
-     * Public shortcut for getTeam with away marker
-     *
-     * @return  Team    Instance of Team class
-     */
-    public function getAwayTeam(): Team
-    {
-        if (!(is_object($this->away_team) && (new \ReflectionClass($this->away_team))->getShortName() == "Team")) {
-            $this->away_team = $this->getTeam("away");
-        }
-        
-        return $this->away_team;
-    }
-    
-    /**
-     * Public shortcuts for getLeader(); with preset names
-     *
-     * @return  Player  Instance of Player class
-     */
-    public function getHomePassingLeader(): Player   { return $this->getLeader("passing", "home");   }
-    public function getHomeRushingLeader(): Player   { return $this->getLeader("rushing", "home");   }
-    public function getHomeReceivingLeader(): Player { return $this->getLeader("receiving", "home"); }
-    public function getAwayPassingLeader(): Player   { return $this->getLeader("passing", "away");   }
-    public function getAwayRushingLeader(): Player   { return $this->getLeader("rushing", "away");   }
-    public function getAwayReceivingLeader(): Player { return $this->getLeader("receiving", "away"); }
     
 }

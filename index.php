@@ -110,7 +110,7 @@ try {
         echo "– " . $e->home_score . ":" . $e->away_score;
         echo PHP_EOL;
     }
-    
+    print_r($parser->page->engine->players);
     echo "</pre>";
 /*
     echo $parser->engine->getHomeTeamName(0).PHP_EOL;
