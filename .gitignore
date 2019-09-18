@@ -1,1 +1,3 @@
-/simplehtmldom
+/vendor
+/logs/*.log
+/test.php
