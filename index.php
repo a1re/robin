@@ -110,13 +110,25 @@ try {
         echo "– " . $e->home_score . ":" . $e->away_score;
         echo PHP_EOL;
     }
-    print_r($parser->page->engine->players);
+    
+    echo PHP_EOL . "<strong>Quarters</strong>" . PHP_EOL;
+    $quarters = $parser->page->engine->getScore();
+    
+    echo $home_team->abbr . "\t" . $quarters->home[1] . "\t" . $quarters->home[2];
+    echo "\t" . $quarters->home[3] . "\t" . $quarters->home[4];
+    if (array_key_exists(5, $quarters->home)) {
+        echo "\t" . $quarters->home[5];
+    }
+    echo "\t<strong>" . $quarters->home[0] . "</strong>" . PHP_EOL;
+    
+    echo $away_team->abbr . "\t" . $quarters->away[1] . "\t" . $quarters->away[2];
+    echo "\t" . $quarters->away[3] . "\t" . $quarters->away[4];
+    if (array_key_exists(5, $quarters->away)) {
+        echo "\t" . $quarters->away[5];
+    }
+    echo "\t<strong>" . $quarters->away[0] . "</strong>" . PHP_EOL;
+
     echo "</pre>";
-/*
-    echo $parser->engine->getHomeTeamName(0).PHP_EOL;
-    echo $parser->engine->getAwayTeamName(0).PHP_EOL;
-    print_r($parser->engine->getAllLeaders());
-*/
 
 } catch (Exception $e) {
     echo "Caught exception: " .  $e->getMessage() . " (Line " . $e->getLine() . " in " . $e->getFile() . "\n";

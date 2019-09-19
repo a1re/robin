@@ -147,13 +147,42 @@ class Gamecast implements ParsingEngine
     public function getAwayReceivingLeader(): Player { return $this->getLeader("receiving", "away"); }
     
     /**
-     * Parsing scoring summary section and getting array of instances of Event
+     * Parsing score by quarters
      *
-     * @return  array   Ordered list of scoring events
+     * @return  object   Object with home and away values, both of them are arrays
+     *                   with [0] for total score, 1,2,3,4 for each quarter and 5
+     *                   for overtime
      */
-    public function getScore()
+    public function getScore(): ?\stdClass
     {
+        $score_row = $this->html->find("table#linescore tbody tr");
         
+        $result = [ ];
+        $keys = [ 0 => "away", 1 => "home" ];
+        
+        if ($score_row !== null) {
+            foreach ($keys as $key=>$team) {
+                if (array_key_exists($key, $score_row) && is_object($score_row[$key])) {
+                    $score_cells = $score_row[$key]->find("td");
+                    foreach ($score_cells as $n => $score) {
+                        $cell_class = $score->getAttribute("class");
+                        if ($cell_class == "team-name") {
+                            //do nothing, skip
+                        } else if ($cell_class == "final-score") {
+                            $result[$team][0] = $score->innertext();
+                        } else {
+                            $result[$team][$n] = $score->innertext();
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (count($result) > 0) {
+            return (object) $result;
+        } else {
+            return null;
+        }
     }
     
     /**
