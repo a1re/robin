@@ -312,8 +312,6 @@ class Gamecast implements ParsingEngine
                         $scoring_event->setScore($new_home_score, $new_away_score);
                     }
                 } else if (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
-                    var_dump($scoring_description);
-                    var_dump($scoring_team->abbr);
                     if ($scoring_event = $this->decomposeXP($scoring_description, $scoring_team)) {
                         $scoring_event->setScore($new_home_score, $new_away_score);
                     }
@@ -712,6 +710,7 @@ class Gamecast implements ParsingEngine
         $first_name = $this->html->find("div.competitors div." . $marker . " a.team-name .long-name", 0);
         $last_name = $this->html->find("div.competitors div." . $marker . " a.team-name .short-name", 0);
         $abbr_name = $this->html->find("div.competitors div." . $marker . " a.team-name .abbrev", 0);
+        $logo_tag = $this->html->find("div.competitors div." . $marker . " div.team-info-logo img.team-logo", 0);
         
         $full_name = "";
         $short_name = "";
@@ -730,7 +729,16 @@ class Gamecast implements ParsingEngine
             $abbr = $abbr_name->plaintext;
         }
         
-        return new Team($full_name, $short_name, $abbr);
+        $team = new Team($full_name, $short_name, $abbr);
+        
+        if ($logo_tag != null && is_object($team)) {
+            $img_url = preg_replace('/(h|w)\=(\d{2,3})/', '$1=150', $logo_tag->getAttribute("src"));
+            if (filter_var($img_url, FILTER_VALIDATE_URL)) {
+                $team->img = $img_url;
+            }
+        }
+        
+        return $team;
     }
     
     /**

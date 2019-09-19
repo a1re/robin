@@ -38,7 +38,7 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030917", // [16] Seahawks vs Chiefs (run two-point conversion))
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[15];
+$url = $url[10];
 
 try {
     $parser = new Parser($url);
@@ -47,9 +47,17 @@ try {
     $away_team = $parser->page->engine->getAwayTeam();
 
     echo "<pre>";
-    echo "Home team name: <strong>" . $home_team->short_name . "</strong> ";
+    echo "Home team: ";
+    if ($home_team->img) {
+        echo "<img src=\"" . $home_team->img . "\" width=\"15\" height=\"15\" /> ";
+    }
+    echo "<strong>" . $home_team->short_name . "</strong> ";
     echo "(" . $home_team->abbr . ", " . $home_team->full_name . ")" . PHP_EOL;
-    echo "Away team name: <strong>" . $away_team->short_name . "</strong> ";
+    echo "Away team: ";
+    if ($away_team->img) {
+        echo "<img src=\"" . $away_team->img . "\" width=\"15\" height=\"15\" /> ";
+    }
+    echo "<strong>" . $away_team->short_name . "</strong> ";
     echo "(" . $away_team->abbr . ", " . $away_team->full_name . ")" . PHP_EOL;
 
     $home_team_passing_leader = $parser->page->engine->getHomePassingLeader();
