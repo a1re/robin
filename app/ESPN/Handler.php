@@ -26,13 +26,14 @@ class Handler
                               "College Football Rankings" => "Rankings",
                               "Standings" => "Standings" ];
                                    
-    public function __construct($html)
+    public function __construct($html, string $language)
     {
         if (!$html || !in_array(get_class($html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new Exception("HTML DOM not received");
         }
         
         $this->html = $html;
+        $this->language = $language;
         $this->engine = $this->getEngine();
     }
     
@@ -50,7 +51,7 @@ class Handler
             $engine = "\\Robin\\ESPN\\" . $engine_name;
             
             if (class_exists($engine)) {
-                return new $engine($this->html);
+                return new $engine($this->html, $this->language);
             }
             throw new ParsingException("No engine found for page \"" . $engine ."\"");
         }

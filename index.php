@@ -38,10 +38,10 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030917", // [16] Seahawks vs Chiefs (run two-point conversion))
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[10];
+$url = $url[0];
 
 try {
-    $parser = new Parser($url);
+    $parser = new Parser($url, "ru");
     
     $home_team = $parser->page->engine->getHomeTeam();
     $away_team = $parser->page->engine->getAwayTeam();

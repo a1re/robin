@@ -17,25 +17,34 @@ class Gamecast implements ParsingEngine
     use Logger;
     
     protected $html;
-    private $methods;
-    
-    private $home_team;
-    private $away_team;
-    public $players = [ ];
-    
+    protected $methods;
     protected $name_pattern_2w = "[a-zA-Z-.\']+\s[a-zA-Z-.\']+";
     protected $name_pattern_3w = "[a-zA-Z-.\']+\s[a-zA-Z-.\']+[a-zA-Z-.\'\s]*";
     
-    public function __construct($html)
+    private $home_team;
+    private $away_team;
+    
+    public $players = [ ];
+    public $language;
+    public $source_language = "en";
+    
+    public function __construct($html, string $language)
     {
         if (!$html || !in_array(get_class($html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new ParsingException("HTML DOM not received");
         }
         
+        $this->language = $language;
         $this->html = $html;
         $this->getHomeTeam();
         $this->getAwayTeam();
     }
+    
+    /**
+     * List of public methods available for calling
+     *
+     * @return  array   List of methods
+     */
     
     public function getMethods(): array
     {

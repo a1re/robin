@@ -13,7 +13,7 @@ class Parser
     public $engine_list = [ "\\ESPN\\Handler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
     public $page;
     
-    public function __construct($url)
+    public function __construct(string $url, string $language = "en")
     {
         require_once "simplehtmldom_1_9/simple_html_dom.php";
         
@@ -45,7 +45,7 @@ class Parser
         
         $html = file_get_html($url);
         
-        $this->page = new $engine($html);
+        $this->page = new $engine($html, $language);
     }
 
 }
