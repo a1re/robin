@@ -5,6 +5,7 @@ namespace Robin\ESPN;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Translate;
 use \Robin\Interfaces\ParsingEngine;
 
  /**
@@ -17,6 +18,7 @@ use \Robin\Interfaces\ParsingEngine;
 class Player
 {
     use Logger;
+    use Translate;
     
     public  $first_name = null;
     public  $last_name = null;
