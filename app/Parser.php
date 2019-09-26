@@ -13,7 +13,7 @@ class Parser
     public $engine_list = [ "\\ESPN\\Handler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
     public $page;
     
-    public function __construct(string $url, string $language = "en")
+    public function __construct(string $url)
     {
         require_once "simplehtmldom_1_9/simple_html_dom.php";
         
@@ -45,7 +45,18 @@ class Parser
         
         $html = file_get_html($url);
         
-        $this->page = new $engine($html, $language);
+        $this->page = new $engine($html);
+    }
+
+    
+    /**
+     * Magic function to pass-through methods to parsed page handler 
+     *
+     * @return Object with ParsingEngine interface
+     */
+    public function __call(string $name, array $arguments)
+    {
+        return call_user_func_array([$this->page, $name], $arguments);
     }
 
 }

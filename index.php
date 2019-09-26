@@ -41,10 +41,10 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
 $url = $url[0];
 
 try {
-    $parser = new Parser($url, "ru");
+    $parser = new Parser($url);
     
-    $home_team = $parser->page->engine->getHomeTeam();
-    $away_team = $parser->page->engine->getAwayTeam();
+    $home_team = $parser->getHomeTeam();
+    $away_team = $parser->getAwayTeam();
 
     echo "<pre>";
     echo "Home team: ";
@@ -60,12 +60,12 @@ try {
     echo "<strong>" . $away_team->short_name . "</strong> ";
     echo "(" . $away_team->abbr . ", " . $away_team->full_name . ")" . PHP_EOL;
 
-    $home_team_passing_leader = $parser->page->engine->getHomePassingLeader();
-    $home_team_rushing_leader = $parser->page->engine->getHomeRushingLeader();
-    $home_team_receiving_leader = $parser->page->engine->getHomeReceivingLeader();
-    $away_team_passing_leader = $parser->page->engine->getAwayPassingLeader();
-    $away_team_rushing_leader = $parser->page->engine->getAwayRushingLeader();
-    $away_team_receiving_leader = $parser->page->engine->getAwayReceivingLeader();
+    $home_team_passing_leader = $parser->getHomePassingLeader();
+    $home_team_rushing_leader = $parser->getHomeRushingLeader();
+    $home_team_receiving_leader = $parser->getHomeReceivingLeader();
+    $away_team_passing_leader = $parser->getAwayPassingLeader();
+    $away_team_rushing_leader = $parser->getAwayRushingLeader();
+    $away_team_receiving_leader = $parser->getAwayReceivingLeader();
 
     echo PHP_EOL . "<strong>Home team leaders</strong>" . PHP_EOL;
     echo "Passing: " . $home_team_passing_leader->getClippedName() . " (";
@@ -102,7 +102,7 @@ try {
     echo ")" . PHP_EOL;
     
     echo PHP_EOL . "<strong>Scoring events</strong>" . PHP_EOL;
-    $scoring_events = $parser->page->engine->getScoringEvents();
+    $scoring_events = $parser->getScoringEvents();
     foreach ($scoring_events as $e) {
         echo $e->quarter . " " . $e->method . "\t" . $e->getTeamAbbr() . "\t";
         if ($e->getAuthor() !== null) {
@@ -120,7 +120,7 @@ try {
     }
     
     echo PHP_EOL . "<strong>Quarters</strong>" . PHP_EOL;
-    $quarters = $parser->page->engine->getScore();
+    $quarters = $parser->getScore();
     
     echo $home_team->abbr . "\t" . $quarters->home[1] . "\t" . $quarters->home[2];
     echo "\t" . $quarters->home[3] . "\t" . $quarters->home[4];
@@ -139,5 +139,5 @@ try {
     echo "</pre>";
 
 } catch (Exception $e) {
-    echo "Caught exception: " .  $e->getMessage() . " (Line " . $e->getLine() . " in " . $e->getFile() . "\n";
+    echo "Caught exception: " .  $e->getMessage() . " (Line " . $e->getLine() . " in " . $e->getFile() . ")\n";
 }

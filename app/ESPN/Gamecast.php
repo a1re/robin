@@ -25,16 +25,14 @@ class Gamecast implements ParsingEngine
     private $away_team;
     
     public $players = [ ];
-    public $language;
     public $source_language = "en";
     
-    public function __construct($html, string $language)
+    public function __construct($html)
     {
         if (!$html || !in_array(get_class($html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new ParsingException("HTML DOM not received");
         }
         
-        $this->language = $language;
         $this->html = $html;
         $this->getHomeTeam();
         $this->getAwayTeam();

@@ -26,14 +26,13 @@ class Handler
                               "College Football Rankings" => "Rankings",
                               "Standings" => "Standings" ];
                                    
-    public function __construct($html, string $language)
+    public function __construct($html)
     {
         if (!$html || !in_array(get_class($html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new Exception("HTML DOM not received");
         }
         
         $this->html = $html;
-        $this->language = $language;
         $this->engine = $this->getEngine();
     }
     
@@ -51,7 +50,7 @@ class Handler
             $engine = "\\Robin\\ESPN\\" . $engine_name;
             
             if (class_exists($engine)) {
-                return new $engine($this->html, $this->language);
+                return new $engine($this->html);
             }
             throw new ParsingException("No engine found for page \"" . $engine ."\"");
         }
@@ -79,25 +78,19 @@ class Handler
         
         return null;        
     }
+
     
-    public function __get($name)
+    /**
+     * Magic function to pass-through methods to parsed page egnine if they
+     * are listed as public. Otherwise, function genereates exception
+     */
+    public function __call(string $name, array $arguments)
     {
-        if (!is_numeric($name)) {
-            $capitalized_string = ucwords(str_replace("_", " ", $name));
-            $name = implode("", explode(" ", $capitalized_string));
+        if (!in_array($name, $this->engine->getMethods())) {
+            throw new ParsingException("No public method \"" . $name . "\" in page engine");
         }
         
-        $method = "get" . $name;
-        
-        echo $method;
-        
-        /*
-        if (method_exists($this->engine, $method)) {
-            return $this->engine->$method;
-        }
-        */
-        
-        return null;
+        return call_user_func_array([$this->engine, $name], $arguments);
     }
     
 }
