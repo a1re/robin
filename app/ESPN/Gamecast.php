@@ -698,7 +698,7 @@ class Gamecast implements ParsingEngine
         
         if (!$player) {
             // If $player_name is null or zero length, Player constructor will throw exception
-            $player = new Player($player_name);
+            $player = new Player($this->source_language, $player_name);
             $this->players[$team][$player_name] = $player;
         }
 
@@ -736,7 +736,7 @@ class Gamecast implements ParsingEngine
             $abbr = $abbr_name->plaintext;
         }
         
-        $team = new Team($full_name, $short_name, $abbr);
+        $team = new Team($this->source_language, $full_name, $short_name, $abbr);
         
         if ($logo_tag != null && is_object($team)) {
             $img_url = preg_replace('/(h|w)\=(\d{2,3})/', '$1=150', $logo_tag->getAttribute("src"));

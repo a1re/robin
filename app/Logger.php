@@ -1,8 +1,8 @@
 <?php
 /*
- * Trait Logger to enable logging method for any object. If there is a global
+ * Use trait Logger to enable logging method for any object. If there is a global
  * variable $logger of Monolog\logger, it is used to log, otherwise, it just
- * collects messages in public $logger array;
+ * collects messages in public array $logger;
  *
  * To add logging method add `use Logger` in class description and then use
  * $this->log(message) method.

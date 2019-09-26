@@ -22,6 +22,7 @@ class Player
     public  $last_name = null;
     public  $position = null;
     public  $number = null;
+    public  $language;
     private $doubleword_names = [ "Ha Ha" ];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
@@ -48,17 +49,24 @@ class Player
     /**
      * Class constructor
      *
+     * @param   string  $language   Original language of the name variables, e.g. "en"
      * @param   string  $f_name     Full name or first name if $l_name is not null
      * @param   string  $l_name     (optional) Last name
      */
-    public function __construct(string $f_name, $l_name = null)
+    public function __construct(string $language, string $f_name, $l_name = null)
     {
+        if (mb_strlen($language) == 0) {
+            throw new Exception("No language set for player");
+        }
+        
         if (mb_strlen($l_name) === 0) {
             $this->splitFullName($f_name);
         } else {
             $this->first_name = $f_name;
             $this->last_name = $l_name;
         }
+        
+        $this->language = $language;
     }
 
     /**

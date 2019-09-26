@@ -78,7 +78,6 @@ class Handler
         
         return null;        
     }
-
     
     /**
      * Magic function to pass-through methods to parsed page egnine if they

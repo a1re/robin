@@ -22,6 +22,7 @@ class Team
     public $short_name;
     public $abbr;
     public $img = false;
+    public $language;
     private $postfixes = [ "State" => "SU", "A&M" => "A&M", "Southern" => "STH", "Tech" => "TU", "Force" => "FA"];
     private $prefixes  = [ "San" , "New", "North", "Northern", "South", "Southern",
                            "East", "Eastern", "West", "Western", "Central", "Middle",
@@ -30,13 +31,18 @@ class Team
     /**
      * Class constructor
      *
+     * @param   string  $language       Original language of the name variables, e.g. "en"
      * @param   string  $full_name      Full name of the team
      * @param   string  $short_name     (optional) Short name of the team
      * @param   string  $abbr           (optional) Abbreviation of the team
      */
     
-    public function __construct(string $full_name, string $short_name = "", string $abbr = "")
+    public function __construct(string $language, string $full_name, string $short_name = "", string $abbr = "")
     {
+        if (mb_strlen($language) == 0) {
+            throw new Exception("No language set for the team");
+        }
+        
         // If both full and short names are empty, we throw exception
         if (mb_strlen($full_name) == 0 && mb_strlen($short_name) == 0) {
             throw new Exception("No name was provided");
@@ -54,6 +60,7 @@ class Team
             $abbr = $this->makeAbbr($short_name);
         }
         
+        $this->language = $language;
         $this->full_name = $full_name;
         $this->short_name = $short_name;
         
@@ -123,7 +130,6 @@ class Team
      *
      * @return  string
      */
-    
     public function makeAbbr(string $name): string
     {
         if (mb_strlen($name) == 0) {
