@@ -25,6 +25,8 @@ class Gamecast implements ParsingEngine
     private $away_team;
     
     public $players = [ ];
+    public $teams = [ ];
+    public $language;
     public $source_language = "en";
     
     public function __construct($html)
@@ -34,8 +36,7 @@ class Gamecast implements ParsingEngine
         }
         
         $this->html = $html;
-        $this->getHomeTeam();
-        $this->getAwayTeam();
+        $this->language = $this->source_language;
     }
     
     /**
@@ -74,7 +75,13 @@ class Gamecast implements ParsingEngine
         $player_name = $player_name_tag ? $player_name_tag->getAttribute("title") : null;
         
         //Adds player to array of Players or returns instance of existing Player
-        $player = $this->addPlayer($player_name, $team);
+        if ($team == "home") {
+            $player = $this->addPlayer($player_name, $this->getHomeTeam());
+        } else if ($team == "away") {
+            $player = $this->addPlayer($player_name, $this->getAwayTeam());
+        } else {
+            throw new ParsingException("Unknown team for player to be added");
+        }
                 
         //Parsing player stats with DOM request with $category and $team markers
         $player_stat_query  = "div[data-module=teamLeaders] div[data-stat-key=";
@@ -267,8 +274,6 @@ class Gamecast implements ParsingEngine
             
             $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
             $scoring_description = $scoring_description ? $scoring_description->innertext : '';
-            
-//            echo $current_quarter ." ". $scoring_team->abbr . " " . $scoring_description . " " . $new_home_score . ":" . $new_away_score . " (" . $delta .")" . PHP_EOL;
             
             // Decomposing extea point first to cut off conversion description from touchdown
             if(in_array(abs($delta), [6,7,8])) {
@@ -668,29 +673,22 @@ class Gamecast implements ParsingEngine
      * $this->players["New England Patriots"]["Tom Brady"] = \ESPN\Player();
      *
      * @param   string  $player_name   Full player name as string
-     * @param   string  $team          "home" or "away" strings or instances equal to
-     *                                 $this->home_team or $this->away_team
+     * @param   Team    $team          Instance of Team (may be equal to
+     *                                 $this->home_team or $this->away_team)
      * @return  Player  Instance of Player class with player info
      */
-    private function addPlayer(string $player_name, $team): Player
-    {
-        if ($team === "home" || $team === $this->home_team) {
-            $team = $this->getHomeTeam()->full_name;
-        } else if ($team === "away" || $team === $this->away_team) {
-            $team = $this->getAwayTeam()->full_name;
-        } else {
-            throw new ParsingException("Unknown team for player to be added");
-        }
-        
+    private function addPlayer(string $player_name, Team $team): Player
+    {   
+        $team_id = $team->getId();
         $player = null;
         
         // Checking if player is among existing player objects
-        if (!array_key_exists($team, $this->players)) {
-            $this->players[$team] = [ ];
+        if (!array_key_exists($team_id, $this->players)) {
+            $this->players[$team_id] = [ ];
         }
         
-        if (array_key_exists($player_name, $this->players[$team])) {
-            $player_object = $this->players[$team][$player_name];
+        if (array_key_exists($player_name, $this->players[$team_id])) {
+            $player_object = $this->players[$team_id][$player_name];
             if (is_object($player_object) && (new \ReflectionClass($player_object))->getShortName() == "Player") {
                 $player = $player_object;
             } 
@@ -699,7 +697,12 @@ class Gamecast implements ParsingEngine
         if (!$player) {
             // If $player_name is null or zero length, Player constructor will throw exception
             $player = new Player($this->source_language, $player_name);
-            $this->players[$team][$player_name] = $player;
+            $this->players[$team_id][$player_name] = $player;
+        }
+        
+        // if output language differs from source language, then we get translation and apply if it is read
+        if ($this->source_language != $this->language && $player->readTranslation($this->language, $team_id)) {
+            $player->applyTranslation($this->language);
         }
 
         return $player;
@@ -745,6 +748,12 @@ class Gamecast implements ParsingEngine
             }
         }
         
+        if ($this->source_language != $this->language && $team->readTranslation($this->language, "Teams")) {
+            $team->applyTranslation($this->language);
+        }
+        
+        $this->teams[$team->getId()] = $team;
+        
         return $team;
     }
     
@@ -756,6 +765,7 @@ class Gamecast implements ParsingEngine
      */
     private function getQuarterByName(string $name = null): string
     {
+        // If name is empty, we keep it as first quarter
         if (mb_strlen($name) == 0) {
             return Event::Q1;
         }
@@ -771,7 +781,38 @@ class Gamecast implements ParsingEngine
             }
         }
         
+        // if header is not empty and doesn't start with first, second, third or fourth, it's overtime
         return Event::OT;
+    }
+    
+    public function listUntranslatedPlayers(string $language): array
+    {
+        $players = [ ];
+        
+        foreach ($this->players as $team) {
+            foreach ($team as $player) {
+                if (!$player->isTranslated()) {
+                    $players[] = $player;
+                }
+            }
+        }
+        
+        return $players;
+    }
+    
+    public function listUntranslatedTeams(string $language): array
+    {
+        $teams = [ ];
+        
+        if (!$this->home_team->isTranslated()) {
+            $teams[] = $this->home_team;
+        }
+        
+        if (!$this->away_team->isTranslated()) {
+            $teams[] = $this->away_team;
+        }
+        
+        return $teams;
     }
     
 }

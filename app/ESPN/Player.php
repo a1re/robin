@@ -7,6 +7,7 @@ use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Translate;
 use \Robin\Interfaces\ParsingEngine;
+use \Robin\Interfaces\Translatable;
 
  /**
   * Class for Player entities inside ESPN
@@ -15,16 +16,19 @@ use \Robin\Interfaces\ParsingEngine;
   * @subpackage ESPN
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Player
+class Player implements Translatable
 {
     use Logger;
     use Translate;
     
     public  $first_name = null;
     public  $last_name = null;
+    public  $first_name_genitive = null;
+    public  $last_name_genitive = null;
     public  $position = null;
     public  $number = null;
     public  $language;
+    public  $source_language;
     private $doubleword_names = [ "Ha Ha" ];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
@@ -69,6 +73,7 @@ class Player
         }
         
         $this->language = $language;
+        $this->source_language = $language;
     }
 
     /**
@@ -279,7 +284,7 @@ class Player
         
         $name .= $this->last_name;
         
-        if ($include_position_and_number && is_int($this->number) && $this->number > 0) {
+        if ($include_position_and_number && mb_strlen($this->number) > 0) {
             $name .= " (#" . $this->number . ")";
         }
         return $name;
@@ -297,5 +302,58 @@ class Player
              $first_letter .= ". ";
         }
         return $first_letter . $this->last_name;
+    }
+    
+    /**
+     * Return list of translatable attributes of a Player object
+     *
+     * @return  array   List of attributes names.
+     */
+    public function getAttributes(): array
+    {
+        return ["first_name", "last_name", "first_name_genitive",
+                "last_name_genitive", "position", "number"];
+    }
+
+    /**
+     * Return id if the translaion object
+     *
+     * @return  string   translation id
+     */
+    public function getId(): string
+    {
+        $id = "";
+        
+        if ($this->isTranslated()) {
+            if (isset($this->translations[$this->source_language]) && is_array($this->translations[$this->source_language])) {
+               $id = $this->translations[$this->source_language]["first_name"];
+               $id = trim($id . " " . $this->translations[$this->source_language]["last_name"]);
+            }
+        }
+        
+        if (mb_strlen($id) == 0) {
+            $id = $this->first_name;
+            $id = trim($id . " " . $this->last_name);
+        }
+        
+        if (mb_strlen($id) == 0) {
+            $id = substr(str_shuffle(MD5(microtime())), 0, 10);
+        }
+        
+        return $id;
+    }
+    
+    /**
+     * Check if object has translation
+     *
+     * @return  bool   true if translated, false if not
+     */
+    public function isTranslated(): bool
+    {
+        if ($this->language != $this->source_language) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }

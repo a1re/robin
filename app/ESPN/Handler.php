@@ -20,6 +20,9 @@ class Handler
     use Logger; // Trait with logging object, so $this->log(message) is available everywhere
     
     private $html; // variable for SimpleHTMLDom object
+    private $type;
+    private $source_language = "en";
+    private $language;
     
     // Array for pages and classes names for parsing
     public $pages_engines = [ "Game Summary" => "Gamecast",
@@ -34,6 +37,7 @@ class Handler
         
         $this->html = $html;
         $this->engine = $this->getEngine();
+        $this->language = $this->source_language;
     }
     
     /**
@@ -77,6 +81,55 @@ class Handler
         }
         
         return null;        
+    }
+    
+    public function setLanguage(string $language): void
+    {
+        $this->language = $language;
+        $this->engine->language = $language;
+        // translation dictionary is stored in .ini file with name of translation
+        // direction of two languages divided by hyphen, where first language
+        // is source and second is target, e.g. en_ru => english to russian.
+        $filename = $this->source_language . "-" . $this->language . ".ini";
+        
+        // Getting the root dir
+        $backtrace = debug_backtrace();
+        $i = count($backtrace)-1;
+        if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+            $dir = dirname($backtrace[$i]["file"]) . "/i18n/" . $this->getType();
+        } else {
+            $dir = __DIR__ . "/i18n/" . $this->getType();
+        }
+        
+        $dictionary = parse_ini_file($dir . "/" . $filename, true);
+        if (is_array($dictionary)) {
+            $this->dictionary = $dictionary;
+        }
+    }
+    
+    public function i18n(string $str, $pluralize_number = null): string
+    {
+        if ($this->language == $this->source_language) {
+            return $str;
+        }
+        
+        if ($pluralize_number === null) {
+            if (array_key_exists($str, $this->dictionary) && !is_array($this->dictionary[$str])) {
+                return $this->dictionary[$str];
+            } else {
+                return $str;
+            }
+        }
+        
+        if (array_key_exists($str, $this->dictionary) && is_array($this->dictionary[$str])) {
+            foreach ($this->dictionary[$str] as $postfix => $value) {
+                if (mb_substr($pluralize_number, (-1)*mb_strlen($postfix)) == $postfix) {
+                    return $value;
+                }
+            }
+        }
+        
+        return $str;
     }
     
     /**

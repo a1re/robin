@@ -6,6 +6,15 @@ use \Exception;
 use \Exceptions\ParsingException;
 use \Robin\Logger;
 
+ /**
+  * Wrapper for parsing objects. Class constructor receives url to be parsed
+  * as @param, parses via Simple HTML Dom function and selects proper class
+  * to work with information. Every class has it's own methods.
+  * 
+  * @package    Robin
+  * @author     Yuriy Marin <yuriy.marin@gmail.com>
+  */
+  
 class Parser
 {
     use Logger;

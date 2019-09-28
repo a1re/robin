@@ -31,6 +31,7 @@ trait Translate
         
         if (count($attrs) > 0) {
             $id = [ ];
+            
             foreach($attrs as $value) {
                 if (isset($this->{$value})) {
                     $id[] = $this->{$value};
@@ -38,9 +39,9 @@ trait Translate
             }
             
             if (!count($id) && is_array($this->translations) && count($this->translations) > 0) {
-                $first_translation = current($this->translations);
-                if (is_array($first_translation)) {
-                    foreach($first_translation as $value) {
+                $translation = current($this->translations);
+                if (is_array($translation)) {
+                    foreach($translation as $value) {
                         $id[] = $value;
                     }
                 }
@@ -51,16 +52,6 @@ trait Translate
         
         if (mb_strlen($id) > 0) {
             return $id;
-        }
-
-        if (count($attrs) > 0) {
-            $id = [ ];
-            foreach($attrs as $value) {
-                if (isset($this->{$value})) {
-                    $id[] = $this->{$value};
-                }
-            }
-            $id = implode(" ", $id);
         }
         
         return substr(str_shuffle(MD5(microtime())), 0, 10);
@@ -75,7 +66,7 @@ trait Translate
      *
      * @param   string  $language   Original language of the name variables, e.g. "en"
      * @param   mixed   $attributes String with value name or associative array.
-     * @param   string  $value     (optional) should be set if previous param is not array.
+     * @param   string  $value      (optional) should be set if previous param is not array.
      */
     public function setTranslation(string $language, $mixed_attributes, string $value = ""): void
     {
@@ -88,6 +79,7 @@ trait Translate
         // object as values, e.g array("name"=>"John") to $player->name = "John"
         if (is_array($mixed_attributes)) {
             foreach ($mixed_attributes as $k => $v) {
+                $k = str_replace(["=",";"], "", $k);
                 if (is_string($k) && (is_string($v) || is_numeric($v))) {
                     $this->translations[$language][$k] = $v;
                 }
@@ -182,8 +174,16 @@ trait Translate
         }
     }
     
-    public function applyTranslation(string $language = ""): bool
-    {
+    /**
+     * Replaces primary object values with translation
+     *
+     * @param   string  $language       language of the translation to be applied
+     * @param   bool    $save_original  If true, then self::composeOriginal will be called first
+     *
+     * @return  bool                    True if translation was found and applied, false if not;
+     */ 
+    public function applyTranslation(string $language = "", bool $save_original = true): bool
+    {        
         if (mb_strlen($language) == 0 && is_array($this->translations)) {
             reset($this->translations);
             $language = key($this->translations);
@@ -194,25 +194,133 @@ trait Translate
         }
         
         if (is_array($this->translations[$language])) {
+            
+            // If translation was found and $save_original set to true, we call
+            // self::composeOriginal to save original values
+            if ($save_original == true) {
+                $this->composeOriginal();
+            }
+        
             foreach ($this->translations[$language] as $key => $value) {
                 $this->{$key} = $value;
             }
+            $this->language = $language;
             return true;
         }
         
         return false;
     }
     
-    public function saveTranslation(string $folder = ""): void
+    /**
+     * Save translation to ini file. I uses folder translations in the root dir.
+     * Translations optionally could be stored inside folders. Filename of the
+     * translation is formed from self::getId(), where spaces replaced with
+     * underscore and "ini" extension is added.
+     *
+     * @param   string  $folder     Folder to save translation file.
+     *
+     * @return  bool                True if translation was found and applied, false if not;
+     */
+    public function saveTranslation(string $folder = ""): bool
     {
-        $backtrace = debug_backtrace();
-        $dir = dirname($backtrace[0]["file"]) . "/translations";
+        $filename = $this->getTranslationFileneme($folder, true);
         
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755);
+        $ini = "";
+        
+        // Composing ini source
+        foreach ($this->translations as $language=>$values) {
+            $ini .= "[" . $language . "]" . PHP_EOL;
+            
+            if (is_array($values)) {
+                foreach ($values as $attrubute => $translation) {
+                    $translation = str_replace(PHP_EOL, " ", $translation);
+                    $translation = addslashes($translation);
+                    $ini .= $attrubute . " = \"" . $translation . "\";" . PHP_EOL;
+                } 
+            }
+            
+            $ini .= PHP_EOL;
         }
         
+        $fp = fopen($filename, "w");
+        
+        if ($fp && flock($fp, LOCK_EX)) {
+            fwrite($fp, $ini);
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            chmod($filename, 0744);
+            
+            return true;
+        }
+        
+        // If writing to file was not successfull, we return false;        
+        return false;
+    }
+
+    /**
+     * Reads translation from ini file. If folder is specified, then it uses it
+     * as a part of path to filename. Filename is based on self::getId(), where
+     * spaces replaced with underscore and "ini" extension is added. All languages
+     * found are put to $this->translations. If specified language is found, method
+     * returns true.
+     *
+     * @param   string  $folder     Folder of the translation file.
+     *
+     * @return  bool                True if translation was found, false if not;
+     */
+    public function readTranslation(string $language, string $folder = ""): bool
+    {
+        $filename = $this->getTranslationFileneme($folder, false);
+        
+        if (file_exists($filename) && is_file($filename)) {
+            $translations = parse_ini_file($filename, true);
+            $language_exists = false;
+            foreach ($translations as $language_from_ini => $attrubutes_from_ini) {
+                if (is_array($attrubutes_from_ini)) {
+                    if ($language == $language_from_ini) {
+                        $language_exists = true;
+                    }
+                    
+                    $this->setTranslation($language_from_ini, $attrubutes_from_ini);
+                }
+            }
+            
+            return $language_exists;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Returns filename of the translation to be read ro write to with self::saveTranslation()
+     * of self::readTranslation(). 
+     *
+     * @param   string  $folder         (optional) Folder of the translation file
+     *                                             if deeper categorisation is needed
+     * @param   string  $create_folder  (optional) Create $folder if it doesn't exist
+     *                                             (appliable if folder name is correct
+     *
+     * @return  string                  Filename
+     */
+    private function getTranslationFileneme(string $folder = "", bool $create_folder = false): ?string
+    {
+        // Getting the root dir
+        $backtrace = debug_backtrace();
+        $i = count($backtrace)-1;
+        if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+            $dir = dirname($backtrace[$i]["file"]) . "/i18n";
+        } else {
+            $dir = __DIR__ . "/i18n";
+        }
+        
+        if (!is_dir($dir)) {
+            mkdir($dir, 0744);
+        }
+
+        // If folder variable is set, checking it for safety, replace spaces
+        // with underline and create it if it doesn't exist.        
         if(mb_strlen($folder) > 0) {
+            $folder = trim($folder);
             if (strpos($folder, "...") !== false) {
                 throw new ParsingException("Incorrect folder name for translation saving");
             }
@@ -221,10 +329,18 @@ trait Translate
                 throw new ParsingException("Incorrect folder name for translation saving");
             }
             
+            $folder = preg_replace("/\s+/u", "_", $folder);
+            
             $dir .= "/" . $folder;
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755);
+            if (!is_dir($dir) && $create_folder == true) {
+                mkdir($dir, 0744);
             }
         }
+        
+        // Gettin id and use it as filename with replacing spaces with underscore
+        $id = trim(preg_replace("/[^a-zа-я0-9 ]/ui", "", $this->getId()));
+        $filename = $dir . "/" . preg_replace("/\s+/u", "_", $id) . ".ini";
+        
+        return $filename;
     }
 }

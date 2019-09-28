@@ -5,7 +5,9 @@ namespace Robin\ESPN;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Translate;
 use \Robin\Interfaces\ParsingEngine;
+use \Robin\Interfaces\Translatable;
 
  /**
   * Class for Team entities inside ESPN
@@ -14,15 +16,17 @@ use \Robin\Interfaces\ParsingEngine;
   * @subpackage ESPN
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Team
+class Team implements Translatable
 {
     use Logger;
+    use Translate;
     
     public $full_name;
     public $short_name;
     public $abbr;
     public $img = false;
     public $language;
+    public $source_language;
     private $postfixes = [ "State" => "SU", "A&M" => "A&M", "Southern" => "STH", "Tech" => "TU", "Force" => "FA"];
     private $prefixes  = [ "San" , "New", "North", "Northern", "South", "Southern",
                            "East", "Eastern", "West", "Western", "Central", "Middle",
@@ -61,6 +65,7 @@ class Team
         }
         
         $this->language = $language;
+        $this->source_language = $language;
         $this->full_name = $full_name;
         $this->short_name = $short_name;
         
@@ -173,6 +178,56 @@ class Team
         }
             
         return mb_strtoupper($abbr);
+    }
+    
+    /**
+     * Return list of translatable attributes of a Team object
+     *
+     * @return  array   List of attributes names.
+     */
+    public function getAttributes(): array
+    {
+        return ["full_name", "short_name", "abbr"];
+    }
+
+    /**
+     * Return id if the translaion object
+     *
+     * @return  string   translation id
+     */
+    public function getId(): string
+    {
+        $id = "";
+        
+        if ($this->isTranslated()) {
+            if (isset($this->translations[$this->source_language]) && is_array($this->translations[$this->source_language])) {
+               $id = $this->translations[$this->source_language]["full_name"];
+            }
+        }
+        
+        if (mb_strlen($id) == 0) {
+            $id = $this->full_name;
+        }
+        
+        if (mb_strlen($id) == 0) {
+            $id = substr(str_shuffle(MD5(microtime())), 0, 10);
+        }
+        
+        return $id;
+    }
+    
+    /**
+     * Check if object has translation
+     *
+     * @return  bool   true if translated, false if not
+     */
+    public function isTranslated(): bool
+    {
+        if ($this->language != $this->source_language) {
+            return true;
+        } else {
+            return false;
+        }
     }
     
 }

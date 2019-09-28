@@ -38,10 +38,11 @@ $url = [ "http://robin.firstandgoal.in/dummy.html",
          "https://www.espn.com/nfl/game/_/gameId/401030917", // [16] Seahawks vs Chiefs (run two-point conversion))
          "https://www.espn.com/college-football/rankings",
          "https://www.espn.com/college-football/standings" ];
-$url = $url[9];
+$url = $url[0];
 
 try {
     $parser = new Parser($url);
+    $parser->setLanguage("ru");
     
     $home_team = $parser->getHomeTeam();
     $away_team = $parser->getAwayTeam();
@@ -70,45 +71,45 @@ try {
     echo PHP_EOL . "<strong>Home team leaders</strong>" . PHP_EOL;
     echo "Passing: " . $home_team_passing_leader->getClippedName() . " (";
     foreach ($home_team_passing_leader->getPassingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     echo "Rushing: " . $home_team_rushing_leader->getClippedName() . " (";
     foreach ($home_team_rushing_leader->getRushingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     echo "Receiving: " . $home_team_receiving_leader->getClippedName() . " (";
     foreach ($home_team_receiving_leader->getReceivingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     
     echo PHP_EOL . "<strong>Away team leaders</strong>" . PHP_EOL;
     echo "Passing: " . $away_team_passing_leader->getClippedName() . " (";
     foreach ($away_team_passing_leader->getPassingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     echo "Rushing: " . $away_team_rushing_leader->getClippedName() . " (";
     foreach ($away_team_rushing_leader->getRushingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     echo "Receiving: " . $away_team_receiving_leader->getClippedName() . " (";
     foreach ($away_team_receiving_leader->getReceivingStats() as $name => $value) {
-        echo $value . " " . $name ." ";
+        echo $value . " " . $parser->i18n($name, $value) ." ";
     }
     echo ")" . PHP_EOL;
     
     echo PHP_EOL . "<strong>Scoring events</strong>" . PHP_EOL;
     $scoring_events = $parser->getScoringEvents();
     foreach ($scoring_events as $e) {
-        echo $e->quarter . " " . $e->method . "\t" . $e->getTeamAbbr() . "\t";
+        echo $e->quarter . " " . $parser->i18n($e->method) . "\t" . $e->getTeamAbbr() . "\t";
         if ($e->getAuthor() !== null) {
-            echo $e->getAuthor() . " ";
+            echo $e->getAuthor(true) . " ";
         }
-        echo $e->type . " ";
+        echo $parser->i18n($e->type) . " ";
         if ($e->getPasser() !== null) {
             echo $e->getPasser() . " ";
         }
@@ -135,6 +136,8 @@ try {
         echo "\t" . $quarters->away[5];
     }
     echo "\t<strong>" . $quarters->away[0] . "</strong>" . PHP_EOL;
+    
+    echo PHP_EOL;
 
     echo "</pre>";
 
