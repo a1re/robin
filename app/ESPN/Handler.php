@@ -22,6 +22,7 @@ class Handler
     private $html; // variable for SimpleHTMLDom object
     private $type;
     private $source_language = "en";
+    private $dictionary = [ ];
     private $language;
     
     // Array for pages and classes names for parsing
@@ -101,9 +102,12 @@ class Handler
             $dir = __DIR__ . "/i18n/" . $this->getType();
         }
         
-        $dictionary = parse_ini_file($dir . "/" . $filename, true);
-        if (is_array($dictionary)) {
-            $this->dictionary = $dictionary;
+        if (file_exists($dir . "/" . $filename)) {
+            $dictionary = parse_ini_file($dir . "/" . $filename, true);
+        
+            if (is_array($dictionary)) {
+                $this->dictionary = $dictionary;
+            }
         }
     }
     
