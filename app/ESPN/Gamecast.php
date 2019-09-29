@@ -106,7 +106,7 @@ class Gamecast implements ParsingEngine
             }
     
             // Parsing indexes form player stats with the same patterns. 
-            $patterns = [ "Yards" => "yds?", "TD" => "td", "Interceptions" => "int",
+            $patterns = [ "Yards" => "yds?", "TD" => "td", "Int" => "int",
                           "Carries" => "car", "Receptions" => "rec" ];
               
             foreach ($patterns as $name => $pattern) {

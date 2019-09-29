@@ -32,7 +32,7 @@ class Player implements Translatable
     private $doubleword_names = [ "Ha Ha" ];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
-                                           "interceptions" => null, "rating" => null ],
+                                           "int" => null, "rating" => null ],
                        "rushing"      => [ "carries" => null, "yards" => null,
                                            "td" => null, "longest" => null ],
                        "receiving"    => [ "targets" => null, "receptions" => null,
@@ -40,7 +40,7 @@ class Player implements Translatable
                        "fumbles"      => [ "lost" => null, "recovered" => null ],
                        "defensive"    => [ "tackles" => null, "solo_tackles" => null,
                                            "tackles_for_loss" => null, "sacks" => null,
-                                           "interceptions" => null,
+                                           "int" => null,
                                            "pass_deflected" => null, "td" => null,
                                            "qb_hits" => null ],
                        "kick_returns" => [ "number" => null, "yards" => null, "td" => null],
