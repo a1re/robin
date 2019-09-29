@@ -54,12 +54,11 @@ class Event
     public $quarter;
     public $method;
     public $type;
-
-    private $is_good = true;
-    private $is_score;
-    private $author;
-    private $passer;
-    private $team;
+    public $is_good = true;
+    public $is_score;
+    public $author;
+    public $passer;
+    public $team;
     
     /**
      * Class constructor
@@ -128,13 +127,17 @@ class Event
     /**
      * Returns short name (string) of scored team or null
      */
-    public function getTeamName(): ?string
+    public function getTeamName(bool $is_full = false): ?string
     {
-        if ($this->team !== null) {
-            return $this->team->short_name;
+        if ($this->team == null) {
+            return null;
         }
         
-        return null;
+        if ($is_full == true) {
+            return $this->team->full_name;
+        }
+
+        return $this->team->short_name;
     }
     
     /**
