@@ -11,6 +11,9 @@
 
 namespace Robin;
 
+use \Exception;
+use \Robin\Exceptions\ParsingException;
+
 trait Translate
 {
     public $translations = [ ];
@@ -322,11 +325,11 @@ trait Translate
         if(mb_strlen($folder) > 0) {
             $folder = trim($folder);
             if (strpos($folder, "...") !== false) {
-                throw new ParsingException("Incorrect folder name for translation saving");
+                throw new ParsingException("Incorrect folder name for translation saving for \"" . $folder ."\"");
             }
             
-            if (!preg_match("/^[a-z0-9\-\._ ]{1,32}$/i", $folder)) {
-                throw new ParsingException("Incorrect folder name for translation saving");
+            if (!preg_match("/^[a-z0-9&\-\._ ]{1,32}$/i", $folder)) {
+                throw new ParsingException("Incorrect folder name for translation saving for \"" . $folder ."\"");
             }
             
             $folder = preg_replace("/\s+/u", "_", $folder);
