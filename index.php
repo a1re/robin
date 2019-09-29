@@ -296,23 +296,23 @@ if (count($_POST) > 0) {
                             $xp_description .= " " . $req["response"][$i+1]["description"];
                             
                             if (array_key_exists("passer", $req["response"][$i+1])) {
-                                if ($req["response"][$i]["passer"]["position"]) {
+                                if ($req["response"][$i+1]["passer"]["position"]) {
                                     $xp_description .= " ". $req["response"][$i+1]["passer"]["position"];
                                 }
                                 
-                                if (mb_strlen($req["response"][$i]["passer"]["first_name_genitive"]) > 0) {
+                                if (mb_strlen($req["response"][$i+1]["passer"]["first_name_genitive"]) > 0) {
                                     $xp_description .= " " . $req["response"][$i+1]["passer"]["first_name_genitive"];
                                 } else {
                                     $xp_description .= " " . $req["response"][$i+1]["passer"]["first_name"];
                                 }
                                 
-                                if (mb_strlen($req["response"][$i]["passer"]["last_name_genitive"]) > 0) {
+                                if (mb_strlen($req["response"][$i+1]["passer"]["last_name_genitive"]) > 0) {
                                     $xp_description .= " " . $req["response"][$i+1]["passer"]["last_name_genitive"];
                                 } else {
                                     $xp_description .= " " . $req["response"][$i+1]["passer"]["last_name"];
                                 }
         
-                                if ($req["response"][$i]["passer"]["number"]) {
+                                if ($req["response"][$i+1]["passer"]["number"]) {
                                     $xp_description .= " (#" . $req["response"][$i+1]["passer"]["number"] . ") ";
                                 }
                             }
