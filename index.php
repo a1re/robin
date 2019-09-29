@@ -233,7 +233,7 @@ if (count($_POST) > 0) {
             if ($req["status"]["code"] == 200) {
                 $result .= "<h2>Ход игры</h2>" . PHP_EOL;
                 
-                $code = "[table caption=\"Ход игры\"]" . PHP_EOL;
+                $code = "[table caption=\"Ход игры\" th=\"0\"]" . PHP_EOL;
                 $result .= "<table>" . PHP_EOL;
                 
                 for ($i=0; $i<count($req["response"]); $i++) {
