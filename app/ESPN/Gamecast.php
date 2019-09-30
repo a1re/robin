@@ -784,6 +784,28 @@ class Gamecast implements ParsingEngine
         // if header is not empty and doesn't start with first, second, third or fourth, it's overtime
         return Event::OT;
     }
+
+    /**
+     * Parses scheduled time and returns \DataTime object or null if no info was found
+     *
+     * @return  DateTime  scheduled time of event
+     */
+    public function getScheduleTime(): ?\DateTime
+    {
+        $game_date_time = $this->html->find(".game-date-time span[data-behavior=date_time]", 0);
+        
+        if ($game_date_time == null) {
+            return null;
+        }
+        
+        $datetime = $game_date_time->getAttribute("data-date");
+        
+        if (mb_strlen($datetime) > 0 && $d = new \DateTime($datetime)) {
+            $d->setTimezone(new \DateTimeZone('Europe/Moscow'));
+            return $d;
+        }
+        return null;
+    }
     
     public function listUntranslatedPlayers(string $language): array
     {

@@ -65,7 +65,11 @@ if (count($_POST) > 0) {
                     $code .= "<strong>" . $req["response"]["home_score"] . "&hyphen;" . $req["response"]["away_score"] . "</strong>";
                     $result .= " " . $req["response"]["home_score"] . "&hyphen;" . $req["response"]["away_score"] . " ";
                 } else {
-                    $code .= "<strong> – </strong>";
+                    if ($req["response"]["time"]) {
+                        $code .= "<strong>" . $req["response"]["time"] . "</strong>";
+                    } else {
+                        $code .= "<strong> – </strong>";
+                    }
                     $result .= " – ";
                 }
                 
@@ -76,6 +80,11 @@ if (count($_POST) > 0) {
                     $result .= " <img width=\"20\" height=\"20\" src=\"" . $req["response"]["away_team"]["img"] ."\" />";
                 }
                 $code .= PHP_EOL . "[/table]";
+                
+                if ($req["response"]["date"] && $req["response"]["time"]) {
+                    $result .= " (" . $req["response"]["date"] . " " . $req["response"]["time"] . ")";
+                }
+                
                 $result .= "</h1>" . PHP_EOL . "<pre class=\"ob\">" . htmlspecialchars($code) . "</pre>" . PHP_EOL;
             }
             

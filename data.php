@@ -75,6 +75,14 @@ try {
             return;
         }
         
+        if ($datetime = $parser->getScheduleTime()) {
+            $data["date"] = $datetime->format("d.m");
+            $data["time"] = $datetime->format("H:i");
+        } else {
+            $data["date"] = null;
+            $data["time"] = null;
+        }
+        
         if ($score == null) {
             $data["has_score"] = false;
         } else {
