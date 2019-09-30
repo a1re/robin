@@ -184,53 +184,59 @@ if (count($_POST) > 0) {
                 $code .= "Пас,";
                 $result .= "<tr><td>Пас</td>";
                 
-                $stat  = mb_substr($req["response"]["home_team"]["passing"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["home_team"]["passing"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["home_team"]["passing"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["home_team"]["passing"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["home_team"]["passing"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["home_team"]["passing"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . ",";
-                $result .= "<td>" . $stat . "</td>";
+                $code .= str_replace(",", "\,", $fname_short . $stat) . ",";
+                $result .= "<td>" . $fname_long . $stat . "</td>";
                 
-                $stat  = mb_substr($req["response"]["away_team"]["passing"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["away_team"]["passing"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["away_team"]["passing"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["away_team"]["passing"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["away_team"]["passing"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["away_team"]["passing"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . PHP_EOL;
-                $result .= "<td>" . $stat . "</td></tr>" . PHP_EOL;
+                $code .= str_replace(",", "\,", $fname_short . $stat) . PHP_EOL;
+                $result .= "<td>" . $fname_long . $stat . "</td></tr>" . PHP_EOL;
                 
                 $code .= "Вынос,";
                 $result .= "<tr><td>Вынос</td>";
                 
-                $stat  = mb_substr($req["response"]["home_team"]["rushing"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["home_team"]["rushing"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["home_team"]["rushing"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["home_team"]["rushing"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["home_team"]["rushing"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["home_team"]["rushing"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . ",";
-                $result .= "<td>" . $stat . "</td>";
+                $code .= str_replace(",", "\,", $fname_short . $stat) . ",";
+                $result .= "<td>" . $fname_long . $stat . "</td>";
                 
-                $stat  = mb_substr($req["response"]["away_team"]["rushing"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["away_team"]["rushing"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["away_team"]["rushing"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["away_team"]["rushing"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["away_team"]["rushing"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["away_team"]["rushing"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . PHP_EOL;
-                $result .= "<td>" . $stat . "</td></tr>" . PHP_EOL;
+                $code .= str_replace(",", "\,", $fname_short . $stat) . PHP_EOL;
+                $result .= "<td>" . $fname_long . $stat . "</td></tr>" . PHP_EOL;
                 
                 $code .= "Прием,";
                 $result .= "<tr><td>Прием</td>";
                 
-                $stat  = mb_substr($req["response"]["home_team"]["receiving"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["home_team"]["receiving"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["home_team"]["receiving"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["home_team"]["receiving"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["home_team"]["receiving"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["home_team"]["receiving"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . ",";
-                $result .= "<td>" . $stat . "</td>";
+                $code .= str_replace(",", "\,", $fname_short . $stat) . ",";
+                $result .= "<td>" . $fname_long . $stat . "</td>";
                 
-                $stat  = mb_substr($req["response"]["away_team"]["receiving"]["player"]["first_name"], 0, 1) . ". ";
-                $stat .= $req["response"]["away_team"]["receiving"]["player"]["last_name"] . " – ";
+                $fname_short = mb_substr($req["response"]["away_team"]["receiving"]["player"]["first_name"], 0, 1) . ". ";
+                $fname_long = $req["response"]["away_team"]["receiving"]["player"]["first_name"] . " ";
+                $stat = $req["response"]["away_team"]["receiving"]["player"]["last_name"] . " – ";
                 $stat .= implode(", ", $req["response"]["away_team"]["receiving"]["stats"]);
 
-                $code .= str_replace(",", "\,", $stat) . PHP_EOL;
-                $result .= "<td>" . $stat . "</td></tr>" . PHP_EOL;
+                $code .= str_replace(",", "\,", $fname_short . $stat) . PHP_EOL;
+                $result .= "<td>" . $fname_long . $stat . "</td></tr>" . PHP_EOL;
                 
                 $code .= "[/table]" . PHP_EOL;
                 $result .= "</table>" . PHP_EOL . "<pre class=\"ob\">" . htmlspecialchars($code) . "</pre>" . PHP_EOL;
