@@ -128,8 +128,6 @@ class Parser
                     }
                 }
                 
-                $this->log($url . " is saved to cache");
-                
                 return $filename;
             }
         }

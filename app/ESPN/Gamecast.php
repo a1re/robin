@@ -1,5 +1,5 @@
 <?php
-    
+
 namespace Robin\ESPN;
 
 use \Exception;
@@ -806,35 +806,4 @@ class Gamecast implements ParsingEngine
         }
         return null;
     }
-    
-    public function listUntranslatedPlayers(string $language): array
-    {
-        $players = [ ];
-        
-        foreach ($this->players as $team) {
-            foreach ($team as $player) {
-                if (!$player->isTranslated()) {
-                    $players[] = $player;
-                }
-            }
-        }
-        
-        return $players;
-    }
-    
-    public function listUntranslatedTeams(string $language): array
-    {
-        $teams = [ ];
-        
-        if (!$this->home_team->isTranslated()) {
-            $teams[] = $this->home_team;
-        }
-        
-        if (!$this->away_team->isTranslated()) {
-            $teams[] = $this->away_team;
-        }
-        
-        return $teams;
-    }
-    
 }

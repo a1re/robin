@@ -1,5 +1,5 @@
 <?php
-    
+
 namespace Robin\ESPN;
 
 use \Exception;
@@ -81,7 +81,7 @@ class Handler
             }
         }
         
-        return null;        
+        return null;
     }
     
     public function setLanguage(string $language): void
