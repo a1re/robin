@@ -1,14 +1,4 @@
 <?php
-/*
- * Trait Logger to enable logging method for any object. If there is a global
- * variable $logger of Monolog\logger, it is used to log, otherwise, it just
- * collects messages in public $logger array;
- *
- * To add logging method add `use Logger` in class description and then use
- * $this->log(message) method.
- *
- */
-
 namespace Robin;
 
 use \Exception;
@@ -323,8 +313,6 @@ trait Translate
         if (!is_dir($dir)) {
             mkdir($dir, 0744);
         }
-        
-        $this->log("dir: " . $dir);
 
         // If folder variable is set, checking it for safety, replace spaces
         // with underline and create it if it doesn't exist.        
