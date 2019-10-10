@@ -308,17 +308,23 @@ trait Translate
     private function getTranslationFileneme(string $folder = "", bool $create_folder = false): ?string
     {
         // Getting the root dir
-        $backtrace = debug_backtrace();
-        $i = count($backtrace)-1;
-        if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-            $dir = dirname($backtrace[$i]["file"]) . "/i18n";
+        if (!defined("ROOT")) {            
+            $backtrace = debug_backtrace();
+            $i = count($backtrace)-1;
+            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+                $dir = dirname($backtrace[$i]["file"]) . "/i18n";
+            } else {
+                $dir = __DIR__ . "/i18n";
+            }
         } else {
-            $dir = __DIR__ . "/i18n";
+            $dir = ROOT . "/i18n";
         }
         
         if (!is_dir($dir)) {
             mkdir($dir, 0744);
         }
+        
+        $this->log("dir: " . $dir);
 
         // If folder variable is set, checking it for safety, replace spaces
         // with underline and create it if it doesn't exist.        

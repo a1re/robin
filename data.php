@@ -7,6 +7,8 @@ use Monolog\Handler\StreamHandler;
 use Robin\Parser;
 use Robin\ESPN\Event;
 
+define("ROOT", __DIR__);
+
 // Setting up fancy error reporting
 $whoops = new \Whoops\Run;
 $whoops->prependHandler(new \Whoops\Handler\PrettyPageHandler);

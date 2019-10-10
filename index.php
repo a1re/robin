@@ -7,6 +7,8 @@ use Monolog\Handler\BrowserConsoleHandler;
 
 use Robin\Parser;
 
+define("ROOT", __DIR__);
+
 // Setting up fancy error reporting
 $whoops = new \Whoops\Run;
 $whoops->prependHandler(new \Whoops\Handler\PrettyPageHandler);

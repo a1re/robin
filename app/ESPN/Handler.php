@@ -94,12 +94,16 @@ class Handler
         $filename = $this->source_language . "-" . $this->language . ".ini";
         
         // Getting the root dir
-        $backtrace = debug_backtrace();
-        $i = count($backtrace)-1;
-        if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-            $dir = dirname($backtrace[$i]["file"]) . "/i18n/" . $this->getType();
+        if (!defined("ROOT")) {
+            $backtrace = debug_backtrace();
+            $i = count($backtrace)-1;
+            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+                $dir = dirname($backtrace[$i]["file"]) . "/i18n/" . $this->getType();
+            } else {
+                $dir = __DIR__ . "/i18n/" . $this->getType();
+            }
         } else {
-            $dir = __DIR__ . "/i18n/" . $this->getType();
+            $dir = ROOT . "/i18n/" . $this->getType();
         }
         
         if (file_exists($dir . "/" . $filename)) {
