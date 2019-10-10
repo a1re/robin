@@ -1,3 +1,4 @@
 /vendor
+/i18n/**/*.ini
 /logs/*.log
 /test.php
