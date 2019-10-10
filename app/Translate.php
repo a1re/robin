@@ -1,14 +1,4 @@
 <?php
-/*
- * Trait Logger to enable logging method for any object. If there is a global
- * variable $logger of Monolog\logger, it is used to log, otherwise, it just
- * collects messages in public $logger array;
- *
- * To add logging method add `use Logger` in class description and then use
- * $this->log(message) method.
- *
- */
-
 namespace Robin;
 
 use \Exception;
@@ -308,12 +298,16 @@ trait Translate
     private function getTranslationFileneme(string $folder = "", bool $create_folder = false): ?string
     {
         // Getting the root dir
-        $backtrace = debug_backtrace();
-        $i = count($backtrace)-1;
-        if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-            $dir = dirname($backtrace[$i]["file"]) . "/i18n";
+        if (!defined("ROOT")) {            
+            $backtrace = debug_backtrace();
+            $i = count($backtrace)-1;
+            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+                $dir = dirname($backtrace[$i]["file"]) . "/i18n";
+            } else {
+                $dir = __DIR__ . "/i18n";
+            }
         } else {
-            $dir = __DIR__ . "/i18n";
+            $dir = ROOT . "/i18n";
         }
         
         if (!is_dir($dir)) {
