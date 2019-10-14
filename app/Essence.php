@@ -21,7 +21,9 @@ class Essence
     private $language;
     
     protected $values;
-    protected $category;
+    protected $category = "Essences";
+    
+    const DIR = "data";
     
     /**
      * Class constructor.
@@ -31,10 +33,9 @@ class Essence
     public function __construct(string $language)
     {
         if (mb_strlen($language) == 0) {
-            throw new Exception("No language set for essence");
+            throw new Exception("Empty language set for " . $this->category ." instance");
         }
         
-        $this->category = "Essences";
         $this->setLanguage($language);
     }
     
@@ -60,7 +61,7 @@ class Essence
                 $attr_name = $attr_key;
             }
             
-            $attr_name = self::simplifyName($attr_name);
+            $attr_name = self::simplifyName(self::camelCaseToUnderscore($attr_name));
             
             $this->attributes[$attr_name] = $attr_label;
         }
@@ -146,7 +147,7 @@ class Essence
      */
     private function setValue(string $attribute_name, string $value, string $language = ""): void
     {
-        $attribute_name = self::simplifyName($attribute_name);
+        $attribute_name = self::simplifyName(self::camelCaseToUnderscore($attribute_name));
         if (mb_strlen($attribute_name) == 0) {
             return;
         }
@@ -175,7 +176,7 @@ class Essence
      */
     private function getValue(string $attribute_name, string $language = ""): ?string
     {
-        $attribute_name = self::simplifyName($attribute_name);
+        $attribute_name = self::simplifyName(self::camelCaseToUnderscore($attribute_name));
         if (mb_strlen($attribute_name) == 0) {
             return null;
         }
@@ -193,6 +194,53 @@ class Essence
         } else {
             return null;
         }
+    }
+
+    /**
+     * Mass setting of values via array.
+     *
+     * @param   array   $values     Associative array with values, where key should
+     *                              be equal to attribute name (attributes must be 
+     *                              predefined with Essence::setAttributes()).
+     * @param   string  $language   (optional) Language of the values. If not
+     *                              set, active language is used.
+     *
+     * @return  void
+     */
+    public function setValues(array $values, string $language = ""): void
+    {
+        if (mb_strlen($language) == 0) {
+            $language = $this->language;
+        }
+        
+        foreach ($values as $attrubute => $value) {
+            $attribute = self::simplifyName(self::camelCaseToUnderscore($attrubute));
+            if (in_array($attrubute, $this->getAttributes()) && (is_string($value) || is_numeric($value))) {
+                $this->values[$language][$attrubute] = $value;
+            }
+        }
+    }
+
+    /**
+     * Returns all values of Essence.
+     *
+     * @param   string  $language   (optional) Language of the values. If not
+     *                              set, active language is used.
+     *
+     * @return  array               List of values in associative array of null if
+     *                              instance doesn't have values of the defined language.
+     */
+    public function getValues(string $language = ""): ?array
+    {
+        if (mb_strlen($language) == 0) {
+            $language = $this->language;
+        }
+        
+        if (!$this->isTranslated($language)) {
+            return null;
+        }
+        
+        return $this->values[$language];
     }
 
     /**
@@ -283,53 +331,161 @@ class Essence
         return $this->setValue($name, $value);
     }
     
-/*
-    public function saveToFile()
+    /**
+     * Saves all values to external data source
+     *
+     * @return  bool    True if saving was successfull, false if not
+     */
+    public function save(): bool
     {
-        
-    }
-    
-    public function openFromFile()
-    {
-        
-    }
-    
-    private function getPath(string $filename)
-    {
-        if (mb_substr($filename, 0, 1) == "/") {
-            
+        if (mb_strlen($this->id) == 0) {
+            throw new Exception("Please set id with Essence::setId() method for ". $this->category . " instance before saving");
         }
-            // If filename path is not absolute, we identify the root dir
-            if (!defined("ROOT")) {            
-                $backtrace = debug_backtrace();
-                $i = count($backtrace)-1;
-                if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-                    $dir = dirname($backtrace[$i]["file"]) . "/";
-                } else {
-                    $dir = __DIR__ . "/";
-                }
-            } else {
-                $dir = ROOT . "/";
+        
+        $filename = $this->getFilePath($this->getId() . ".ini", true);
+        $ini = "";
+        
+        // Composing ini source
+        foreach ($this->values as $language=>$values) {
+            $ini .= "[" . $language . "]" . PHP_EOL;
+            if (is_array($values)) {
+                foreach ($values as $attrubute => $translation) {
+                    $translation = str_replace(PHP_EOL, " ", $translation);
+                    $translation = addslashes($translation);
+                    $ini .= $attrubute . " = \"" . $translation . "\";" . PHP_EOL;
+                } 
             }
             
-            $folder_prefix = "i18n";
-            if (is_string($this->category) && mb_strlen($this->category) > 0) {
-                $folder_prefix .= "/" . $this->category;
-            }
+            $ini .= PHP_EOL;
+        }
+        
+        $fp = fopen($filename, "w");
+        if ($fp && flock($fp, LOCK_EX)) {
+            fwrite($fp, $ini);
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            chmod($filename, 0744);
             
-            $folders = explode("/", $folder_prefix.$filename);
-            $c = count($folders)-1;
-            unset($folders);
-            
-            foreach ($folders as $folder) {
-                if
-            }
-            
-            
-        }   
-
+            return true;
+        }
+        
+        return false;
     }
-*/
+    
+    /**
+     * Restores all values from external data source
+     *
+     * @return  bool    True if restoring was successfull, false if not
+     */
+    public function restore(): bool
+    {
+        if (mb_strlen($this->id) == 0) {
+            throw new Exception("Please set id with Essence::setId() method for ". $this->category . " instance before restoring");
+        }
+        
+        $filename = $this->getFilePath($this->getId() . ".ini");
+
+        if (file_exists($filename) && is_file($filename)) {
+            $values = parse_ini_file($filename, true);
+            foreach ($values as $language_from_ini => $attrubutes_from_ini) {
+                if (is_array($attrubutes_from_ini)) {
+                    $values_array = [ ];
+                    foreach ($attrubutes_from_ini as $attrubute => $value) {
+                        if (in_array($attrubute, $this->getAttributes())) {
+                            $values_array[$attrubute] = $value;
+                        }
+                    }
+                    if (count($values_array)) {
+                        $this->values[$language_from_ini] = $values_array;
+                    }
+                }
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Returns full file path to file with data to be stored. Input file name
+     * can contain subdirs. Optionally second parameter can be set to true to
+     * to create all folders on way to final filename.
+     *
+     * @param   string  $filename           Name of the file (can include
+     *                                      containing folder)
+     * @param   bool    $create_folders     (optional) Set to true to create
+     *                                      nonexistent folders in File Path
+     *
+     * @return  string                      Output string, simplified and clean
+     */
+    private function getFilePath(string $filename, bool $create_folders = false)
+    {
+        if (mb_strlen($filename) == 0) {
+            throw new Exception("Filename cannot be empty");
+        }
+        
+        if (mb_substr($filename, 0, 1) == "/") {
+            return $filename;
+        }
+        
+        // If filename path is not absolute, we identify the root dir
+        if (defined("ROOT")) {
+            $root_dir = ROOT;
+        } else {
+            $backtrace = debug_backtrace();
+            $i = count($backtrace)-1;
+            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
+                $root_dir = dirname($backtrace[$i]["file"]);
+            } else {
+                $root_dir = __DIR__;
+            }
+        }
+        
+        // Building file path from root as array of folders that inclose each next one
+        $folders = [ ];
+        if (mb_strlen(self::DIR) > 0) {
+            $folders[] = self::DIR;
+        }
+        if (is_string($this->category) && mb_strlen($this->category) > 0) {
+            $folders[] = $this->category;
+        }
+        
+        // Taking out prefix folder (or several) from input $filename and put
+        // them into $folders array by poping out last element (as filename) and
+        // merging with $folders
+        $filename_parts = explode("/", $filename);
+        $filename = array_pop($filename_parts);
+        $folders = array_merge($folders, $filename_parts);
+        
+        // Simplifying filename to cut away dagnerous symbols. If filename has
+        // extension, we simplify it separately.
+        $filename_ext = mb_strrpos($filename, ".") ? mb_strcut($filename, mb_strrpos($filename, ".")) : false;
+        if ($filename_ext) {
+            $filename = self::simplifyName(mb_substr($filename, 0, (-1)*mb_strlen($filename_ext)));
+            $filename .= "." . self::simplifyName($filename_ext);
+        } else {
+            $filename = self::simplifyName($filename);
+        }
+        
+        // Iterating folders one-by-one, adding to root, check existance and create if needed
+        $folder_path = $root_dir;
+        foreach($folders as $folder) {
+            if ($folder == "." || $folder == "..") {
+                continue;
+            }
+            $folder = self::simplifyName($folder);
+            if (mb_strlen($folder) == 0) {
+                continue;
+            }
+            $folder_path .= "/" . $folder;
+            if (!is_dir($folder_path) && $create_folders) {
+                mkdir($folder_path, 0744);
+            }
+        }
+        
+        return $folder_path . "/" . $filename;
+    }
     
     /**
      * STATIC METHOD
@@ -343,8 +499,8 @@ class Essence
      */
     public static function simplifyName(string $str): string
     {
-        $str = preg_replace("/[^\w]+/", " ", $str);
-        $str = self::camelCaseToUnderscore($str);
+        $str = str_replace(["'", "`", "′", "&"], "", $str);
+        $str = trim(preg_replace("/[^\w]+/", " ", $str));
         $str = mb_convert_case($str, MB_CASE_LOWER, "UTF-8");
         $str = str_replace(" ", "_", $str);
         return $str;

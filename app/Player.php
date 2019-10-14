@@ -46,15 +46,11 @@ class Player extends Essence
      */
     public function __construct(string $language, string $f_name, $l_name = null)
     {
-        if (mb_strlen($language) == 0) {
-            throw new Exception("No language set for player");
-        }
-        
+        $this->category = "Players";
         parent::__construct($language);
+        
         $this->setAttributes(["first_name", "last_name", "first_name_genitive",
                               "last_name_genitive", "position", "number"]);
-        
-        $this->category = "Players";
         
         if (mb_strlen($l_name) === 0) {
             $this->splitFullName($f_name);
@@ -97,7 +93,123 @@ class Player extends Essence
         $this->first_name = array_shift($name_parts);
         $this->last_name = join(" ", $name_parts);
     }
+    
+    /**
+     * Returns full name of the player in one string
+     *
+     * @param   bool    $include_position_and_number    include into name position
+     *                                                  and number, e.g. "QB Tom Brady (#12)"
+     *                                                  instead of just "Tom Brady"
+     * @return  string  Full player name
+     */
+    public function getFullName(bool $include_position_and_number = false): string
+    {
+        $name = "";
+        if ($include_position_and_number && mb_strlen($this->position) > 0) {
+            $name .= $this->position . " ";
+        }
+        
+        if (mb_strlen($this->first_name)) {
+           $name .= $this->first_name . " "; 
+        }
+        
+        $name .= $this->last_name;
+        
+        if ($include_position_and_number && mb_strlen($this->number) > 0) {
+            $name .= " (#" . $this->number . ")";
+        }
+        return $name;
+    }
+    
+    public function getStats(string $category_name)
+    {
+        if (mb_strlen(trim($category_name)) == 0) {
+            throw new Exception("Stats category cannot be empty");
+        }
+        
+        $parts = explode("_", Essence::camelCaseToUnderscore($category_name));
+        if (count($parts) == 1) {
+            throw new Exception("Unknown stats category");
+        } 
+        
+        return implode(" ", $parts);
+        
+    }
+    
+    /**
+     * Takes camelCased name from magic method __call, split it into elements and
+     * searches through $this->stats for necessary variable. Returns reference for
+     * the value or generates Exception if it is not found; 
+     *
+     * @param   string  $name   camelCased name from __call
+     * @return  reference       referense for the found value
+     */
+    private function & findStatsVariable(string $name)
+    {
+        $words = explode("_", Essence::camelCaseToUnderscore($name));
+        
+        $null = null;
 
+        if (strlen($name) == 0) {
+            throw new Exception("Argument \"name\" is missing");
+        }
+
+        $words = preg_split("/((?<=[a-z])(?=[A-Z])|(?=[A-Z][a-z]))/", $name);
+                
+        if (count($words) == 1) {
+            throw new Exception("Unknown stats category");
+        } elseif (count($words) == 2) {
+            if(array_key_exists($words[0], $this->stats) && array_key_exists($words[1], $this->stats[{$words[0]}])) {
+                return $this->stats[{$words[0]}][{$words[1]}];
+            } else {
+                throw new Exception("Unknown stats category");
+            }
+        }
+        
+/*
+        // indexes 0 and 1 exist in words by if statement above
+        $p1 = strtolower($words[0]);
+        $p2 = strtolower($words[1]);
+        
+        // if index 3 exist, assign it to p3
+        if (array_key_exists(2, $words)) {
+            $p3 = strtolower($words[2]);
+        } else {
+            $p3 = null;
+        }
+        
+        // all others, if exist, got joined with "_" and concatenated to p3
+        if (array_key_exists(3, $words)) {
+            for ($i=3; $i<count($words); $i++) {
+                $p3 .= " " . strtolower($words[$i]);
+            }
+                
+            $p3 = str_replace(" ", "_", trim($p3));
+        }
+        
+        if (array_key_exists($p1, $this->stats)) {
+            if ($p3 === null && array_key_exists($p2, $this->stats[$p1])) {
+                return $this->stats[$p1][$p2];
+            } else if(array_key_exists($p2 . "_" . $p3, $this->stats[$p1])) {
+                return $this->stats[$p1][$p2 . "_" . $p3];
+            }        
+        } else if(array_key_exists($p1 . "_" . $p2, $this->stats)) {
+            if ($p3 !== false && array_key_exists($p3, $this->stats[$p1 . "_" . $p2])) {
+                return $this->stats[$p1 . "_" . $p2][$p3];
+            }
+        }
+*/
+        
+        throw new Exception("No stats value is found");
+    }
+
+    
+    /*
+    $this->getStatsList("passing");
+    
+    $this->getStats("KickReturnsNumber");
+    $this->setStats("PassingAttempts", 5);
+    */
     
     public function export()
     {
