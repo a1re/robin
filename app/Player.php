@@ -267,17 +267,4 @@ class Player extends Essence
         }
         return $arr;
     }
-    
-    /*
-    $this->getStatsList("passing");
-    
-    $this->getStats("KickReturnsNumber");
-    $this->setStats("PassingAttempts", 5);
-    */
-    
-    public function export()
-    {
-        return $this->values;
-    }
-    
 }

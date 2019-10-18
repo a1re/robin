@@ -584,4 +584,14 @@ class Essence
         }
     }
 
+    /**
+     * Returns all values of the Essence
+     *
+     * @return  array          Content of $this->values
+     */ 
+    public function export()
+    {
+        return $this->values;
+    }
+
 }
