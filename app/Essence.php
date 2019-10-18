@@ -112,15 +112,34 @@ class Essence
     /**
      * Sets active language of the essence.
      *
-     * @param   string  $language     Language of the name variables, e.g. "en"
+     * @param   string  $language               Language of the name variables, e.g. "en"
+     * @paeam   bool    $use_exising_values     Set to true, if 
      *
      * @return  void         
      */
-    public function setLanguage(string $language): void
+    public function setLanguage(string $language, bool $use_existing_values = false): void
     {
-        if (mb_strlen(trim($language)) > 0) {
-            $this->language = $language;
+        if (mb_strlen(trim($language)) == 0) {
+            return;
         }
+        
+        if ($this->language == $language) {
+            return;
+        }
+        
+        if ($use_existing_values == true) {
+            foreach ($this->values[$this->language] as $attribute=>$value) {
+                if (!(
+                        array_key_exists($language, $this->values)
+                        &&
+                        array_key_exists($attribute, $this->values[$language])
+                    )) {
+                    $this->values[$language][$attribute] = $value;
+                }
+            }
+        }
+        
+        $this->language = $language;
     }
     
     /**
