@@ -121,88 +121,152 @@ class Player extends Essence
         return $name;
     }
     
-    public function getStats(string $category_name)
+    /**
+     * Returns stats list. If category not set, return all stats.
+     *
+     * @param   bool    $return_nulls    (optional) if set to true, returns stats
+     *                                   indexes even if they are null. False is
+     *                                   by default and returns only meaningful
+     *                                   variables.
+     * @param   string  $category_name   (optional) camelCased name of stats
+     *                                   category. Empty value returns all categories.
+     * @return  mixed                    Int, Float or null
+     */
+    public function getStatsList(bool $return_nulls = false, string $category_name = ""): array
     {
         if (mb_strlen(trim($category_name)) == 0) {
-            throw new Exception("Stats category cannot be empty");
+            $stats = $this->stats;
+        } else {
+            $category_name = Essence::camelCaseToUnderscore($category_name);
+            
+            if (array_key_exists($category_name, $this->stats)) {
+                $stats = $this->stats[$category_name];
+            } else {
+                throw new Exception("Unknown stats category \"" . $category_name . "\"");
+            }
         }
         
-        $parts = explode("_", Essence::camelCaseToUnderscore($category_name));
-        if (count($parts) == 1) {
-            throw new Exception("Unknown stats category");
-        } 
-        
-        return implode(" ", $parts);
-        
+        if ($return_nulls) {
+            $stats = $this->removeNulls($stats);
+        }
+        return $stats;
     }
     
     /**
-     * Takes camelCased name from magic method __call, split it into elements and
-     * searches through $this->stats for necessary variable. Returns reference for
+     * Sets stat index. Name is passed in camelCase. Generates Exception if
+     * it is not found, or passed value is not numeric.
+     *
+     * @param   string  $name   camelCased name (e.g. "PassingAttempts")
+     * @param   numeric $value  Numeric value of the index
+     * @return  void
+     */
+    public function setStats(string $name, $value): void
+    {
+        if (mb_strlen(trim($name)) == 0) {
+            throw new Exception("Stats category cannot be empty");
+        }
+        
+        if (!is_numeric($value)) {
+            throw new Exception("Stats value must be numeric");
+        }
+        
+        $variable = &$this->findStatsVariable($name);
+        $variable = $value;
+    }
+    
+    /**
+     * Returns stats variable by camelCased name or generates Exception if
+     * it is not found; 
+     *
+     * @param   string  $name   camelCased name (e.g. "PassingAttempts")
+     * @return  mixed           Int, Float or null
+     */
+    public function getStats(string $name)
+    {
+        if (mb_strlen(trim($name)) == 0) {
+            throw new Exception("Stats category cannot be empty");
+        }
+        
+        $variable = $this->findStatsVariable($name);
+        return $variable;
+    }
+    
+    /**
+     * Takes camelCased name of stats value and returns reference for
      * the value or generates Exception if it is not found; 
      *
-     * @param   string  $name   camelCased name from __call
+     * @param   string  $name   camelCased name (e.g. "PassingAttempts")
      * @return  reference       referense for the found value
      */
+     
     private function & findStatsVariable(string $name)
     {
-        $words = explode("_", Essence::camelCaseToUnderscore($name));
+        $null = null; // Only variable references can be returned by reference (&),
+                      // so we need $null in case we found nothing.
         
-        $null = null;
-
         if (strlen($name) == 0) {
             throw new Exception("Argument \"name\" is missing");
         }
+        
+        $words = explode("_", Essence::camelCaseToUnderscore($name));
 
-        $words = preg_split("/((?<=[a-z])(?=[A-Z])|(?=[A-Z][a-z]))/", $name);
-                
         if (count($words) == 1) {
-            throw new Exception("Unknown stats category");
+            throw new Exception("Unknown stats index \"" . $name . "\"");
         } elseif (count($words) == 2) {
-            if(array_key_exists($words[0], $this->stats) && array_key_exists($words[1], $this->stats[{$words[0]}])) {
-                return $this->stats[{$words[0]}][{$words[1]}];
+            if(array_key_exists($words[0], $this->stats) && array_key_exists($words[1], $this->stats[$words[0]])) {
+                return $this->stats[$words[0]][$words[1]];
             } else {
-                throw new Exception("Unknown stats category");
+                throw new Exception("Unknown stats index \"" . $name . "\"");
             }
         }
         
-/*
-        // indexes 0 and 1 exist in words by if statement above
-        $p1 = strtolower($words[0]);
-        $p2 = strtolower($words[1]);
-        
-        // if index 3 exist, assign it to p3
-        if (array_key_exists(2, $words)) {
-            $p3 = strtolower($words[2]);
-        } else {
-            $p3 = null;
-        }
-        
-        // all others, if exist, got joined with "_" and concatenated to p3
-        if (array_key_exists(3, $words)) {
-            for ($i=3; $i<count($words); $i++) {
-                $p3 .= " " . strtolower($words[$i]);
+        for ($i=0; $i<count($words)-1; $i++) {
+            $category_array = [];
+            $subcategory_array = [];
+
+            $category_array[] = $words[0];
+            for ($j=1; $j<=$i; $j++) {
+                $category_array[] = $words[$j];
             }
-                
-            $p3 = str_replace(" ", "_", trim($p3));
-        }
-        
-        if (array_key_exists($p1, $this->stats)) {
-            if ($p3 === null && array_key_exists($p2, $this->stats[$p1])) {
-                return $this->stats[$p1][$p2];
-            } else if(array_key_exists($p2 . "_" . $p3, $this->stats[$p1])) {
-                return $this->stats[$p1][$p2 . "_" . $p3];
-            }        
-        } else if(array_key_exists($p1 . "_" . $p2, $this->stats)) {
-            if ($p3 !== false && array_key_exists($p3, $this->stats[$p1 . "_" . $p2])) {
-                return $this->stats[$p1 . "_" . $p2][$p3];
+            for ($y=$j; $y<count($words); $y++) {
+                $subcategory_array[] = $words[$y];
             }
+            
+            $category_name = implode("_", $category_array);
+            $subcategory_name = implode("_", $subcategory_array);
+            
+            if(array_key_exists($category_name, $this->stats) && array_key_exists($subcategory_name, $this->stats[$category_name])) {
+                return $this->stats[$category_name][$subcategory_name];
+            }
+            
         }
-*/
         
-        throw new Exception("No stats value is found");
+        throw new Exception("Unknown stats index \"" . $name . "\"");
     }
 
+    /**
+     * Recursively run through array and keep only values, that are not NULL and 0
+     *
+     * @param   array   $arr    Array to be cleaned
+     * @return  array   Array without null values
+     */
+    private function removeNulls(array $arr): array
+    {
+        foreach ($arr as $key=>$value) {
+            if (is_array($value)) {
+                $arr[$key] = $this->removeNulls($value);
+                
+                if (count($arr[$key]) == 0) {
+                    unset($arr[$key]);
+                }
+            } else {
+                if ($value === null || $value == 0) {
+                    unset($arr[$key]);
+                }
+            }
+        }
+        return $arr;
+    }
     
     /*
     $this->getStatsList("passing");
