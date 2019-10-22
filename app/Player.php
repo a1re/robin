@@ -8,13 +8,15 @@ use \Robin\Logger;
 use \Robin\Essence;
 
  /**
-  * Class for Players that extends Essence
+  * Class for Player entities that extends Essence
   * 
   * @package    Robin
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
 class Player extends Essence
 {
+    use Logger;
+
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
                                            "int" => null, "rating" => null ],
