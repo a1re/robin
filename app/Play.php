@@ -5,7 +5,6 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
-use \Robin\Essence;
 
  /**
   * Class for Plays entities

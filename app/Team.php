@@ -5,6 +5,7 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Essence;
 
  /**
   * Class for Team entities that extends Essence
