@@ -5,6 +5,7 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Essence;
 
  /**
   * Class for Plays entities
@@ -101,7 +102,9 @@ class Play
     private $origin = null;
     
     /**
-     * Class constructor
+     * Class constructor. Can be used in two different ways — by defining $play_type, $possessing_team
+     * and $defending_team or by passing array of variables exported by method Play::export(), e.g.:
+     * new Play($exported_values);
      *
      * @param   string  $play_type          Type of play, must be equal to one of preset play types from
      *                                      Play::$offensive_play_types, Play::$defensive_play_types
@@ -109,24 +112,45 @@ class Play
      * @param   string  $possessing_team    Id of the team that has posession on the beginning of the play
      * @param   string  $defending_team     Id of the team that acts as defening on the beginning of the play
      */
-    public function __construct(string $play_type, string $possessing_team, string $defending_team)
+    public function __construct($play_type, string $possessing_team = "", string $defending_team = "")
     {
+        if (is_array($play_type)) {
+            $import = $play_type;
+            
+            if (array_key_exists("play_type", $import)) {
+                $play_type = $import["play_type"];
+                unset($import["play_type"]);
+            }
+            
+            if (array_key_exists("possessing_team", $import)) {
+                $possessing_team = $import["possessing_team"];
+                unset($import["possessing_team"]);
+            }
+            
+            if (array_key_exists("defending_team", $import)) {
+                $defending_team = $import["defending_team"];
+                unset($import["defending_team"]);
+            }   
+        } else if (!is_string($play_type)) {
+            throw new Exception("Play type must be a valid non-empty string");
+        }
+            
         $play_type = trim($play_type);
         $possessing_team = trim($possessing_team);
         $defending_team = trim($defending_team);
-        
-        if (mb_strlen($play_type) == 0) {
+            
+        if (strlen($play_type) == 0) {
             throw new Exception("Play type cannot be empty");
         }
-        
-        if (mb_strlen($possessing_team) == 0) {
+            
+        if (strlen($possessing_team) == 0) {
             throw new Exception("Possessing team cannot be empty");
         }
-        
-        if (mb_strlen($defending_team) == 0) {
+            
+        if (strlen($defending_team) == 0) {
             throw new Exception("Defending team cannot be empty");
         }
-        
+            
         if (in_array($play_type, self::$offensive_play_types)) {
             $this->play_category = self::OFFENSIVE_PLAY;
             $this->play_type = $play_type;
@@ -139,9 +163,27 @@ class Play
         } else {
             throw new Exception("Unknown play type: \"" . $play_type . "\"");
         }
-        
+            
         $this->possessing_team = $possessing_team;
         $this->defending_team = $defending_team;
+        
+        
+        if (isset($import) && count($import) > 0) {
+
+            foreach ($import as $name=>$value) {
+                if ($value === null) {
+                    continue;
+                }
+                
+                $method_name = Essence::underscoreToCamelCase("set_" . $name);
+                
+                if (method_exists($this, $method_name)) {
+                    $this->{$method_name}($value);
+                } else if (property_exists($this, $name)){
+                    $this->$name = $value;
+                }
+            }
+        }
     }
     
     /**
@@ -154,7 +196,7 @@ class Play
     {
         $play_type = trim($play_type);
         
-        if (mb_strlen($play_type) == 0) {
+        if (strlen($play_type) == 0) {
             throw new Exception("Play type cannot be empty");
         }
         
@@ -173,7 +215,7 @@ class Play
      */    
     public function setDefenders($defenders): void
     {
-        if (is_array($defender) && count($defenders) > 0) {
+        if (is_array($defenders) && count($defenders) > 0) {
             foreach ($defenders as $defender) {
                 if (is_string($defender) && !in_array($defender, $this->defenders)) {
                     $this->defenders[] = $defender;
@@ -182,8 +224,8 @@ class Play
         }
         
         if (is_string($defenders)) {
-            if (!in_array($defender, $this->defenders)) {
-                $this->defenders[] = $defender;
+            if (!in_array($defenders, $this->defenders)) {
+                $this->defenders[] = $defenders;
             }
         }
     }
@@ -292,7 +334,7 @@ class Play
      *
      * @param   int    $start   Starting position, can be from 0 to 100
      */
-    public function setStart(int $start)
+    public function setPositionStart(int $start)
     {
         $this->position_start = $start;
     }
@@ -302,7 +344,7 @@ class Play
      *
      * @param   int    $start   Ending position, can be from 0 to 100
      */
-    public function setFinish(int $finish)
+    public function setPositionFinish(int $finish)
     {
         $this->position_finish = $finish;
     }
@@ -315,22 +357,57 @@ class Play
     public function setQuarter(string $quarter)
     {
         if (!in_array($quarter, [self::Q1, self::Q2, self::Q3, self::Q4, self::OT])) {
-            throw new Exception("Incorrect qauarter \"" . $quarter . "\"");            
+            throw new Exception("Incorrect quarter \"" . $quarter . "\"");            
         }
         
         $this->quarter = $quarter;
     }
     
     /**
-     * Magic nethod for reading private properties
-     */    
-    public function __get(string $name)
+     * Magic method for to acceess private properties. Properties are accessed via
+     * method with "get" prefix and property name in camelCase, e.g. $this->play_type
+     * is access via method Play::getPlayType();. Properties with names starting with 
+     * cann be accessed withot get, e.g. Play::isTurnover() for $this->is_turnover;
+     */
+    public function __call($name, $arguments)
     {
-        if (!property_exists($this, $name)) {
-            throw new Exception("Unknown property \"" . $name . "\"");
+        if (mb_substr($name, 0, 3) == "get") {
+            $property = Essence::camelCaseToUnderscore(mb_substr($name, 3));
+            
+            if (!property_exists($this, $property)) {
+                throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+            }
+            
+            return $this->$property;
+        } else if (mb_substr($name, 0, 2) == "is") {
+            $property = Essence::camelCaseToUnderscore($name);
+            
+            if (!property_exists($this, $property)) {
+                throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+            }
+            
+            return $this->$property;
+        } else {
+            throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+        }
+    }
+    
+    /**
+     * Exports all non-null instance variables into array. This array can be user
+     * in class constructor to restore object on property list.
+     *
+     * @return  array   List of object properties
+     */
+    public function export(): array
+    {
+        $export = get_object_vars($this);
+        
+        foreach ($export as $name => $value) {
+            if ($name == "logger" || $value === null) {
+                unset($export[$name]);
+            }
         }
         
-        return $this->$name;
+        return $export;
     }
-
 }
