@@ -7,7 +7,6 @@ use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Translate;
 use \Robin\Interfaces\ParsingEngine;
-use \Robin\Interfaces\Translatable;
 
  /**
   * Class for Team entities inside ESPN
@@ -16,7 +15,7 @@ use \Robin\Interfaces\Translatable;
   * @subpackage ESPN
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Team implements Translatable
+class Team
 {
     use Logger;
     use Translate;

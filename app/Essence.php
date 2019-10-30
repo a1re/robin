@@ -4,6 +4,7 @@ namespace Robin;
 
 use \Exception;
 use \Robin\Exceptions\ParsingException;
+use \Robin\Interfaces\Translatable;
 use \Robin\Logger;
 use \Robin\Inflector;
 
@@ -13,7 +14,7 @@ use \Robin\Inflector;
   * @package    Robin
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Essence
+class Essence implements Translatable
 {
     use Logger;
     
