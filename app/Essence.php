@@ -5,6 +5,7 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
+use \Robin\Inflector;
 
  /**
   * Essence class for basing on it different objects like Players, Teams, etc.
@@ -54,14 +55,14 @@ class Essence
     {
         foreach ($attrs as $attr_key => $attr_value) {
             if (is_numeric($attr_key)) {
-                $attr_label = self::underscoreToWords($attr_value);
+                $attr_label = Inflector::underscoreToWords($attr_value);
                 $attr_name = $attr_value;
             } else {
                 $attr_label = $attr_value;
                 $attr_name = $attr_key;
             }
             
-            $attr_name = self::simplifyName(self::camelCaseToUnderscore($attr_name));
+            $attr_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attr_name));
             
             $this->attributes[$attr_name] = $attr_label;
         }
@@ -166,7 +167,7 @@ class Essence
      */
     private function setValue(string $attribute_name, string $value, string $language = ""): void
     {
-        $attribute_name = self::simplifyName(self::camelCaseToUnderscore($attribute_name));
+        $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
         if (mb_strlen($attribute_name) == 0) {
             return;
         }
@@ -195,7 +196,7 @@ class Essence
      */
     private function getValue(string $attribute_name, string $language = ""): ?string
     {
-        $attribute_name = self::simplifyName(self::camelCaseToUnderscore($attribute_name));
+        $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
         if (mb_strlen($attribute_name) == 0) {
             return null;
         }
@@ -233,7 +234,7 @@ class Essence
         }
         
         foreach ($values as $attrubute => $value) {
-            $attribute = self::simplifyName(self::camelCaseToUnderscore($attrubute));
+            $attribute = Inflector::simplify(Inflector::camelCaseToUnderscore($attrubute));
             if (in_array($attrubute, $this->getAttributes()) && (is_string($value) || is_numeric($value))) {
                 $this->values[$language][$attrubute] = $value;
             }
@@ -294,7 +295,7 @@ class Essence
             throw new Exception("Call to undefined method \"" . $name . "\" in Robin\Essence");
         }
         
-        $attribute_name = self::camelCaseToUnderscore(mb_substr($name, 3));
+        $attribute_name = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
         if (!in_array($attribute_name, $this->getAttributes())) {
             throw new Exception("Cannot set undefined attribute \"" . $attribute_name . "\"");
         }
@@ -481,10 +482,10 @@ class Essence
         // extension, we simplify it separately.
         $filename_ext = mb_strrpos($filename, ".") ? mb_strcut($filename, mb_strrpos($filename, ".")) : false;
         if ($filename_ext) {
-            $filename = self::simplifyName(mb_substr($filename, 0, (-1)*mb_strlen($filename_ext)));
-            $filename .= "." . self::simplifyName($filename_ext);
+            $filename = Inflector::simplify(mb_substr($filename, 0, (-1)*mb_strlen($filename_ext)));
+            $filename .= "." . Inflector::simplify($filename_ext);
         } else {
-            $filename = self::simplifyName($filename);
+            $filename = Inflector::simplify($filename);
         }
         
         // Iterating folders one-by-one, adding to root, check existance and create if needed
@@ -493,7 +494,7 @@ class Essence
             if ($folder == "." || $folder == "..") {
                 continue;
             }
-            $folder = self::simplifyName($folder);
+            $folder = Inflector::simplify($folder);
             if (mb_strlen($folder) == 0) {
                 continue;
             }
@@ -504,103 +505,6 @@ class Essence
         }
         
         return $folder_path . "/" . $filename;
-    }
-    
-    /**
-     * STATIC METHOD
-     *
-     * Cleans str from all chars except regular latin and underscore, converts
-     * camel case to snake case.
-     *
-     * @param   string  $str    Input string
-     *
-     * @return  string          Output string, simplified and clean
-     */
-    public static function simplifyName(string $str): string
-    {
-        $str = str_replace(["'", "`", "′", "&"], "", $str);
-        $str = trim(preg_replace("/[^\w]+/", " ", $str));
-        $str = mb_convert_case($str, MB_CASE_LOWER, "UTF-8");
-        $str = str_replace(" ", "_", $str);
-        return $str;
-    }
-    
-    /**
-     * STATIC METHOD
-     *
-     * Converts string in camelCase to snake_case. Ignores whitespaces.
-     *
-     * @param   string  $str    Input string in camelCase
-     *
-     * @return  string          Output string in snake_case
-     */    
-    public static function camelCaseToUnderscore(string $str): string
-    {
-        $words = preg_split("/((?<=[a-z])(?=[A-Z])|(?=[A-Z][a-z]))/", $str);
-        $words_count = count($words);
-        for ($i=0; $i<$words_count; $i++) {
-            $words[$i] = trim($words[$i]);
-            if (mb_strlen($words[$i]) == 0) {
-                unset($words[$i]);
-                continue;
-            }
-            
-            $words[$i] = mb_convert_case($words[$i], MB_CASE_LOWER, "UTF-8");
-        }
-        
-        return preg_replace("/_+/", "_", implode("_", $words));
-    }
-
-    /**
-     * STATIC METHOD
-     *
-     * Converts snake_case to camelCase. Ignores whitespaces.
-     *
-     * @param   string  $str    Input string in snake_case
-     *
-     * @return  string          Output string in camelCase
-     */  
-    public static function underscoreToCamelCase(string $str): string
-    {
-        $words = explode("_", $str);
-        
-        if (count($words) > 1) {
-            for ($i=0; $i<count($words); $i++) {
-                $words[$i] = trim($words[$i]);
-                if (mb_strlen($words[$i]) == 0) {
-                    unset($words[$i]);
-                    continue;
-                }
-                
-                $words[$i] = mb_convert_case($words[$i], MB_CASE_LOWER, "UTF-8");
-                if ($i > 0) {
-                    $words[$i] = mb_convert_case($words[$i], MB_CASE_TITLE, "UTF-8");
-                }
-            }
-            return implode("", $words);
-        } else {
-            return $words[0];
-        }
-    }
-
-    /**
-     * STATIC METHOD
-     *
-     * Converts snake_case to whitespace separated words
-     *
-     * @param   string  $str    Input string in snake_case
-     *
-     * @return  string          Output string in separated words
-     */  
-    public static function underscoreToWords(string $str): string
-    {
-        $words = preg_split('/(_|\s)/', $str);
-        $words[0] = mb_convert_case($words[0], MB_CASE_TITLE, "UTF-8");
-        if (count($words) > 1) {
-            return implode(" ", $words);
-        } else {
-            return $words[0];
-        }
     }
 
     /**

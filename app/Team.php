@@ -61,7 +61,7 @@ class Team extends Essence
     }
     
     /**
-     * Makes short name out of long name, e.g. "Dever Broncos" => "Denver"
+     * Makes short name out of long name, e.g. "Denver Broncos" => "Denver"
      *
      * @param   string  $full_name  Full name of the team
      *

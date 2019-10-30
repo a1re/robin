@@ -6,6 +6,7 @@ use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Essence;
+use \Robin\Inflector;
 
  /**
   * Class for Player entities that extends Essence
@@ -139,7 +140,7 @@ class Player extends Essence
         if (mb_strlen(trim($category_name)) == 0) {
             $stats = $this->stats;
         } else {
-            $category_name = Essence::camelCaseToUnderscore($category_name);
+            $category_name = Inflector::camelCaseToUnderscore($category_name);
             
             if (array_key_exists($category_name, $this->stats)) {
                 $stats = $this->stats[$category_name];
@@ -148,7 +149,7 @@ class Player extends Essence
             }
         }
         
-        if ($return_nulls) {
+        if (!$return_nulls) {
             $stats = $this->removeNulls($stats);
         }
         return $stats;
@@ -210,7 +211,7 @@ class Player extends Essence
             throw new Exception("Argument \"name\" is missing");
         }
         
-        $words = explode("_", Essence::camelCaseToUnderscore($name));
+        $words = explode("_", Inflector::camelCaseToUnderscore($name));
 
         if (count($words) == 1) {
             throw new Exception("Unknown stats index \"" . $name . "\"");

@@ -5,7 +5,7 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
-use \Robin\Essence;
+use \Robin\Inflector;
 
  /**
   * Class for Plays entities
@@ -175,7 +175,7 @@ class Play
                     continue;
                 }
                 
-                $method_name = Essence::underscoreToCamelCase("set_" . $name);
+                $method_name = Inflector::underscoreToCamelCase("set_" . $name);
                 
                 if (method_exists($this, $method_name)) {
                     $this->{$method_name}($value);
@@ -372,7 +372,7 @@ class Play
     public function __call($name, $arguments)
     {
         if (mb_substr($name, 0, 3) == "get") {
-            $property = Essence::camelCaseToUnderscore(mb_substr($name, 3));
+            $property = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
             
             if (!property_exists($this, $property)) {
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
@@ -380,7 +380,7 @@ class Play
             
             return $this->$property;
         } else if (mb_substr($name, 0, 2) == "is") {
-            $property = Essence::camelCaseToUnderscore($name);
+            $property = Inflector::camelCaseToUnderscore($name);
             
             if (!property_exists($this, $property)) {
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
