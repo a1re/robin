@@ -7,6 +7,7 @@ use \Robin\Exceptions\ParsingException;
 use \Robin\Interfaces\Translatable;
 use \Robin\Logger;
 use \Robin\Inflector;
+use \Robin\Keeper;
 
  /**
   * Essence class for basing on it different objects like Players, Teams, etc.
@@ -21,11 +22,10 @@ class Essence implements Translatable
     private $id;
     private $attributes = [];
     private $language;
+    private $data_handler;
     
     protected $values;
     protected $category = "Essences";
-    
-    const DIR = "data";
     
     /**
      * Class constructor.
@@ -34,11 +34,23 @@ class Essence implements Translatable
      */
     public function __construct(string $language)
     {
-        if (mb_strlen($language) == 0) {
+        if (strlen($language) == 0) {
             throw new Exception("Empty language set for " . $this->category ." instance");
         }
         
         $this->setLanguage($language);
+    }
+    
+    /**
+     * Set hadler for saving and restoring data of the Essence
+     *
+     * @param   Keeper  $data_handler   Keeper object for storing data
+     *
+     * @return  void         
+     */
+    public function setDataHandler(Keeper $data_handler): void
+    {
+        $this->data_handler = $data_handler;
     }
     
     /**
@@ -96,7 +108,7 @@ class Essence implements Translatable
      */
     public function setId(string $id): void
     {
-        if (mb_strlen(trim($id)) > 0) {
+        if (strlen(trim($id)) > 0) {
             $this->id = $id;
         }
     }
@@ -121,7 +133,7 @@ class Essence implements Translatable
      */
     public function setLanguage(string $language, bool $use_existing_values = false): void
     {
-        if (mb_strlen(trim($language)) == 0) {
+        if (strlen(trim($language)) == 0) {
             return;
         }
         
@@ -169,7 +181,7 @@ class Essence implements Translatable
     private function setValue(string $attribute_name, string $value, string $language = ""): void
     {
         $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
-        if (mb_strlen($attribute_name) == 0) {
+        if (strlen($attribute_name) == 0) {
             return;
         }
         
@@ -177,7 +189,7 @@ class Essence implements Translatable
             return;
         }
         
-        if (mb_strlen(trim($language)) == 0) {
+        if (strlen(trim($language)) == 0) {
             $language = $this->getLanguage();
         }
         
@@ -198,7 +210,7 @@ class Essence implements Translatable
     private function getValue(string $attribute_name, string $language = ""): ?string
     {
         $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
-        if (mb_strlen($attribute_name) == 0) {
+        if (strlen($attribute_name) == 0) {
             return null;
         }
         
@@ -206,7 +218,7 @@ class Essence implements Translatable
             return null;
         }
         
-        if (mb_strlen(trim($language)) == 0) {
+        if (strlen(trim($language)) == 0) {
             $language = $this->getLanguage();
         }
         
@@ -230,7 +242,7 @@ class Essence implements Translatable
      */
     public function setValues(array $values, string $language = ""): void
     {
-        if (mb_strlen($language) == 0) {
+        if (strlen($language) == 0) {
             $language = $this->language;
         }
         
@@ -253,7 +265,7 @@ class Essence implements Translatable
      */
     public function getValues(string $language = ""): ?array
     {
-        if (mb_strlen($language) == 0) {
+        if (strlen($language) == 0) {
             $language = $this->language;
         }
         
@@ -273,7 +285,7 @@ class Essence implements Translatable
      */
     public function isTranslated($language): bool
     {
-        if (mb_strlen(trim($language)) == 0) {
+        if (strlen(trim($language)) == 0) {
             return false;
         }
         
@@ -359,38 +371,21 @@ class Essence implements Translatable
      */
     public function save(): bool
     {
-        if (mb_strlen($this->id) == 0) {
-            throw new Exception("Please set id with Essence::setId() method for ". $this->category . " instance before saving");
+        if (!$this->data_handler) {
+            throw new Exception("Please set handler with Essence::setDataHandler() method to save data");
         }
         
-        $filename = $this->getFilePath($this->getId() . ".ini", true);
-        $ini = "";
-        
-        // Composing ini source
-        foreach ($this->values as $language=>$values) {
-            $ini .= "[" . $language . "]" . PHP_EOL;
-            if (is_array($values)) {
-                foreach ($values as $attrubute => $translation) {
-                    $translation = str_replace(PHP_EOL, " ", $translation);
-                    $translation = addslashes($translation);
-                    $ini .= $attrubute . " = \"" . $translation . "\";" . PHP_EOL;
-                } 
-            }
-            
-            $ini .= PHP_EOL;
+        if (strlen($this->id) == 0) {
+            throw new Exception(
+                "Please set id with Essence::setId() method for ".
+                $this->category .
+                " instance to save data"
+            );
         }
         
-        $fp = fopen($filename, "w");
-        if ($fp && flock($fp, LOCK_EX)) {
-            fwrite($fp, $ini);
-            flock($fp, LOCK_UN);
-            fclose($fp);
-            chmod($filename, 0744);
-            
-            return true;
-        }
+        $object_id = $this->category . "/" . $this->id;
         
-        return false;
+        return $this->data_handler->save($object_id, $this->values);
     }
     
     /**
@@ -400,112 +395,45 @@ class Essence implements Translatable
      */
     public function restore(): bool
     {
-        if (mb_strlen($this->id) == 0) {
-            throw new Exception("Please set id with Essence::setId() method for ". $this->category . " instance before restoring");
+        if (!$this->data_handler) {
+            throw new Exception("Please set handler with Essence::setDataHandler() method to read data");
         }
         
-        $filename = $this->getFilePath($this->getId() . ".ini");
-
-        if (file_exists($filename) && is_file($filename)) {
-            $values = parse_ini_file($filename, true);
-            foreach ($values as $language_from_ini => $attrubutes_from_ini) {
-                if (is_array($attrubutes_from_ini)) {
+        if (strlen($this->id) == 0) {
+            throw new Exception(
+                "Please set id with Essence::setId() method for ".
+                $this->category .
+                " instance to read data"
+            );
+        }
+        
+        $object_id = $this->category . "/" . $this->id;
+        
+        $values = $this->data_handler->read($object_id);
+        
+        if (is_array($values)) {
+            $count_values = 0;
+            foreach ($values as $language => $attrubutes) {
+                if (is_array($attrubutes)) {
                     $values_array = [ ];
-                    foreach ($attrubutes_from_ini as $attrubute => $value) {
+                    foreach ($attrubutes as $attrubute => $value) {
                         if (in_array($attrubute, $this->getAttributes())) {
                             $values_array[$attrubute] = $value;
                         }
                     }
                     if (count($values_array)) {
-                        $this->values[$language_from_ini] = $values_array;
+                        $this->values[$language] = $values_array;
+                        $count_values++;
                     }
                 }
             }
             
-            return true;
+            if ($count_values) {
+                return true;
+            }
         }
         
         return false;
-    }
-    
-    /**
-     * Returns full file path to file with data to be stored. Input file name
-     * can contain subdirs. Optionally second parameter can be set to true to
-     * to create all folders on way to final filename.
-     *
-     * @param   string  $filename           Name of the file (can include
-     *                                      containing folder)
-     * @param   bool    $create_folders     (optional) Set to true to create
-     *                                      nonexistent folders in File Path
-     *
-     * @return  string                      Output string, simplified and clean
-     */
-    private function getFilePath(string $filename, bool $create_folders = false)
-    {
-        if (mb_strlen($filename) == 0) {
-            throw new Exception("Filename cannot be empty");
-        }
-        
-        if (mb_substr($filename, 0, 1) == "/") {
-            return $filename;
-        }
-        
-        // If filename path is not absolute, we identify the root dir
-        if (defined("ROOT")) {
-            $root_dir = ROOT;
-        } else {
-            $backtrace = debug_backtrace();
-            $i = count($backtrace)-1;
-            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-                $root_dir = dirname($backtrace[$i]["file"]);
-            } else {
-                $root_dir = __DIR__;
-            }
-        }
-        
-        // Building file path from root as array of folders that inclose each next one
-        $folders = [ ];
-        if (mb_strlen(self::DIR) > 0) {
-            $folders[] = self::DIR;
-        }
-        if (is_string($this->category) && mb_strlen($this->category) > 0) {
-            $folders[] = $this->category;
-        }
-        
-        // Taking out prefix folder (or several) from input $filename and put
-        // them into $folders array by poping out last element (as filename) and
-        // merging with $folders
-        $filename_parts = explode("/", $filename);
-        $filename = array_pop($filename_parts);
-        $folders = array_merge($folders, $filename_parts);
-        
-        // Simplifying filename to cut away dagnerous symbols. If filename has
-        // extension, we simplify it separately.
-        $filename_ext = mb_strrpos($filename, ".") ? mb_strcut($filename, mb_strrpos($filename, ".")) : false;
-        if ($filename_ext) {
-            $filename = Inflector::simplify(mb_substr($filename, 0, (-1)*mb_strlen($filename_ext)));
-            $filename .= "." . Inflector::simplify($filename_ext);
-        } else {
-            $filename = Inflector::simplify($filename);
-        }
-        
-        // Iterating folders one-by-one, adding to root, check existance and create if needed
-        $folder_path = $root_dir;
-        foreach($folders as $folder) {
-            if ($folder == "." || $folder == "..") {
-                continue;
-            }
-            $folder = Inflector::simplify($folder);
-            if (mb_strlen($folder) == 0) {
-                continue;
-            }
-            $folder_path .= "/" . $folder;
-            if (!is_dir($folder_path) && $create_folders) {
-                mkdir($folder_path, 0744);
-            }
-        }
-        
-        return $folder_path . "/" . $filename;
     }
 
     /**
