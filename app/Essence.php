@@ -5,9 +5,9 @@ namespace Robin;
 use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Interfaces\Translatable;
+use \Robin\Language;
 use \Robin\Logger;
 use \Robin\Inflector;
-use \Robin\Keeper;
 
  /**
   * Essence class for basing on it different objects like Players, Teams, etc.
@@ -18,39 +18,45 @@ use \Robin\Keeper;
 class Essence implements Translatable
 {
     use Logger;
+    use Language;
     
     private $id;
     private $attributes = [];
-    private $language;
-    private $data_handler;
     
     protected $values;
-    protected $category = "Essences";
+    protected $category;
+    protected static $default_language = "en";
     
     /**
      * Class constructor.
      *
-     * @param   string  $language   Current language of the variables, e.g. "en"
+     * @param   string  $category   Category of the essence, in plural form (e.g. "Players")
      */
-    public function __construct(string $language)
+    public function __construct(string $category = "Essences")
     {
-        if (strlen($language) == 0) {
-            throw new Exception("Empty language set for " . $this->category ." instance");
+        if (strlen($category) == 0) {
+            throw new Exception("Category of the Essence cannot be empty");
         }
         
-        $this->setLanguage($language);
+        $this->category = $category;
+        $this->language = self::$default_language;
     }
     
     /**
-     * Set hadler for saving and restoring data of the Essence
+     * STATIC METHOD
+     * Sets the default language for all future instances of Essence.
      *
-     * @param   Keeper  $data_handler   Keeper object for storing data
+     * @param   string  $language   Default language, e.g. "en"
      *
      * @return  void         
-     */
-    public function setDataHandler(Keeper $data_handler): void
+     */    
+    public static function setDefaultLanguage(string $language): void
     {
-        $this->data_handler = $data_handler;
+        if (strlen($language) == 0) {
+            throw new Exception("Default language for Essence cannot be empty");
+        }
+        
+        self::$default_language = $language;
     }
     
     /**
@@ -124,49 +130,6 @@ class Essence implements Translatable
     }
     
     /**
-     * Sets active language of the essence.
-     *
-     * @param   string  $language               Language of the name variables, e.g. "en"
-     * @paeam   bool    $use_exising_values     Set to true, if 
-     *
-     * @return  void         
-     */
-    public function setLanguage(string $language, bool $use_existing_values = false): void
-    {
-        if (strlen(trim($language)) == 0) {
-            return;
-        }
-        
-        if ($this->language == $language) {
-            return;
-        }
-        
-        if ($use_existing_values == true) {
-            foreach ($this->values[$this->language] as $attribute=>$value) {
-                if (!(
-                        array_key_exists($language, $this->values)
-                        &&
-                        array_key_exists($attribute, $this->values[$language])
-                    )) {
-                    $this->values[$language][$attribute] = $value;
-                }
-            }
-        }
-        
-        $this->language = $language;
-    }
-    
-    /**
-     * Returns current language of the essence.
-     *
-     * @return  string     Language value
-     */
-    public function getLanguage(): string
-    {
-        return $this->language;
-    }
-    
-    /**
      * Sets value of the essence defined by atttribute in certain language.
      * If language is not set, default is used. Attribute must be preliminary
      * set by setAttributes.
@@ -190,7 +153,7 @@ class Essence implements Translatable
         }
         
         if (strlen(trim($language)) == 0) {
-            $language = $this->getLanguage();
+            $language = $this->language;
         }
         
         $this->values[$language][$attribute_name] = $value;
@@ -219,7 +182,7 @@ class Essence implements Translatable
         }
         
         if (strlen(trim($language)) == 0) {
-            $language = $this->getLanguage();
+            $language = $this->language;
         }
         
         if (array_key_exists($language, $this->values) && array_key_exists($attribute_name, $this->values[$language])) {
@@ -269,30 +232,10 @@ class Essence implements Translatable
             $language = $this->language;
         }
         
-        if (!$this->isTranslated($language)) {
-            return null;
-        }
-        
-        return $this->values[$language];
-    }
-
-    /**
-     * Checks if essence has values in defined language.
-     *
-     * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
-     *
-     * @return  bool                True if translation exists, False if not.
-     */
-    public function isTranslated($language): bool
-    {
-        if (strlen(trim($language)) == 0) {
-            return false;
-        }
-        
-        if (array_key_exists($language, $this->values) && count($this->values[$language]) > 0) {
-            return true;
+        if (array_key_exists($language, $this->values)) {
+            return $this->values[$language];
         } else {
-            return false;
+            return null;
         }
     }
     
@@ -362,78 +305,6 @@ class Essence implements Translatable
         }
         
         return $this->setValue($name, $value);
-    }
-    
-    /**
-     * Saves all values to external data source
-     *
-     * @return  bool    True if saving was successfull, false if not
-     */
-    public function save(): bool
-    {
-        if (!$this->data_handler) {
-            throw new Exception("Please set handler with Essence::setDataHandler() method to save data");
-        }
-        
-        if (strlen($this->id) == 0) {
-            throw new Exception(
-                "Please set id with Essence::setId() method for ".
-                $this->category .
-                " instance to save data"
-            );
-        }
-        
-        $object_id = $this->category . "/" . $this->id;
-        
-        return $this->data_handler->save($object_id, $this->values);
-    }
-    
-    /**
-     * Restores all values from external data source
-     *
-     * @return  bool    True if restoring was successfull, false if not
-     */
-    public function restore(): bool
-    {
-        if (!$this->data_handler) {
-            throw new Exception("Please set handler with Essence::setDataHandler() method to read data");
-        }
-        
-        if (strlen($this->id) == 0) {
-            throw new Exception(
-                "Please set id with Essence::setId() method for ".
-                $this->category .
-                " instance to read data"
-            );
-        }
-        
-        $object_id = $this->category . "/" . $this->id;
-        
-        $values = $this->data_handler->read($object_id);
-        
-        if (is_array($values)) {
-            $count_values = 0;
-            foreach ($values as $language => $attrubutes) {
-                if (is_array($attrubutes)) {
-                    $values_array = [ ];
-                    foreach ($attrubutes as $attrubute => $value) {
-                        if (in_array($attrubute, $this->getAttributes())) {
-                            $values_array[$attrubute] = $value;
-                        }
-                    }
-                    if (count($values_array)) {
-                        $this->values[$language] = $values_array;
-                        $count_values++;
-                    }
-                }
-            }
-            
-            if ($count_values) {
-                return true;
-            }
-        }
-        
-        return false;
     }
 
     /**

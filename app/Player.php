@@ -17,6 +17,8 @@ use \Robin\Inflector;
 class Player extends Essence
 {
     use Logger;
+    
+    protected static $default_language;
 
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
@@ -43,14 +45,18 @@ class Player extends Essence
     /**
      * Class constructor
      *
-     * @param   string  $language   Original language of the name variables, e.g. "en"
      * @param   string  $f_name     Full name or first name if $l_name is not null
      * @param   string  $l_name     (optional) Last name
      */
-    public function __construct(string $language, string $f_name, $l_name = null)
+    public function __construct(string $f_name, $l_name = null)
     {
-        $this->category = "Players";
-        parent::__construct($language);
+        // If class doesn't have its own default language set, we take it from parent class
+        if (!self::$default_language) {
+            self::$default_language = parent::$default_language;
+        }        
+        
+        parent::__construct("Players");
+        $this->language = self::$default_language;
         
         $this->setAttributes(["first_name", "last_name", "first_name_genitive",
                               "last_name_genitive", "position", "number"]);
@@ -61,6 +67,23 @@ class Player extends Essence
             $this->first_name = $f_name;
             $this->last_name = $l_name;
         }
+    }
+    
+    /**
+     * STATIC METHOD
+     * Sets the default language for all future instances of Essence.
+     *
+     * @param   string  $language   Default language, e.g. "en"
+     *
+     * @return  void         
+     */    
+    public static function setDefaultLanguage(string $language): void
+    {
+        if (strlen($language) == 0) {
+            throw new Exception("Default language for Essence cannot be empty");
+        }
+        
+        self::$default_language = $language;
     }
 
     /**

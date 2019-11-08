@@ -16,6 +16,8 @@ use \Robin\Essence;
 class Team extends Essence
 {
     use Logger;
+    
+    protected static $default_language;
 
     private static $postfixes = [ "State" => "SU", "A&M" => "A&M", "Southern" => "STH",
                                   "Tech" => "TU", "Force" => "FA"];
@@ -26,15 +28,19 @@ class Team extends Essence
     /**
      * Class constructor
      *
-     * @param   string  $language       Original language of the name variables, e.g. "en"
      * @param   string  $full_name      Full name of the team
      * @param   string  $short_name     (optional) Short name of the team
      * @param   string  $abbr           (optional) Abbreviation of the team
      */
-    public function __construct(string $language, string $full_name, string $short_name = "", string $abbr = "")
+    public function __construct(string $full_name, string $short_name = "", string $abbr = "")
     {
-        $this->category = "Teams";
-        parent::__construct($language);
+        // If class doesn't have its own default language set, we take it from parent class
+        if (!self::$default_language) {
+            self::$default_language = parent::$default_language;
+        }        
+        
+        parent::__construct("Teams");
+        $this->language = self::$default_language;
         
         $this->setAttributes(["full_name", "short_name", "abbr", "img"]);
         
@@ -58,6 +64,23 @@ class Team extends Essence
         $this->full_name = $full_name;
         $this->short_name = $short_name;
         $this->abbr = $abbr;
+    }
+    
+    /**
+     * STATIC METHOD
+     * Sets the default language for all future instances of Essence.
+     *
+     * @param   string  $language   Default language, e.g. "en"
+     *
+     * @return  void         
+     */    
+    public static function setDefaultLanguage(string $language): void
+    {
+        if (strlen($language) == 0) {
+            throw new Exception("Default language for Essence cannot be empty");
+        }
+        
+        self::$default_language = $language;
     }
     
     /**
