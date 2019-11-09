@@ -6,6 +6,10 @@ use \Exception;
 use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Inflector;
+use \Robin\Keeper;
+use \Robin\GameTerms;
+use \Robin\Team;
+use \Robin\Player;
 
  /**
   * Class for Plays entities
@@ -13,93 +17,34 @@ use \Robin\Inflector;
   * @package    Robin
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Play
+class Play extends GameTerms
 {
     use Logger;
-
-    // Offensive plays
-    const OFFENSIVE_PLAY = "offensive";    
-    const RUN = "run";
-    const PASS = "pass from";
     
-    // Endings
-    const TACKLE = "tackled by";
-    const SACK = "sacked by";
-    const FUMBLE = "fumble";
-    const LATERAL = "lateral pass";
-    const INTERCEPTION = "intercepted by";
-    const PASS_DEFLECTION = "deflected by";
-    const PUNT_BLOCK = "punt block";
-    const OTHER = "other";
+    const TRANSLATION_ID = "play"; // id for file with terms translation
+    private static $default_language = "en";
     
-    // Special plays
-    const SPECIAL_PLAY = "special";   
-    const KICK = "kick";
-    const PUNT = "punt";
-    const KICKOFF_RETURN = "kickoff return";
-    const KICK_RETURN = "kick return";
-    const PUNT_RETURN = "punt return";
-    const PUNT_RECOVERY = "punt recovery";
-
-    // Defensive plays
-    const DEFENSIVE_PLAY = "defensive";
-    const INTERCEPTION_RETURN = "interception return";
-    const FUMBLE_RETURN = "fumble return";
-    const FUMBLE_RECOVERY = "fumble recovery";
-
-    // Scoring methods
-    const TD = "TD";
-    const FG = "FG";
-    const SF = "SF";
-    const XP = "XP";
-    const X2P = "X2P";
-    const D2P = "D2P";
-    
-    // Quarters
-    const Q1 = "Q1";
-    const Q2 = "Q2";
-    const Q3 = "Q3";
-    const Q4 = "Q4";
-    const OT = "OT";
-    
-    public static $offensive_play_types = [
-        self::RUN, self::PASS
+    private $language;
+    private $translation = [];
+    private $values = [
+        "is_scoring_play" => false,
+        "play_category" => null,
+        "play_type" => null,
+        "author" => null,
+        "passer" => null,
+        "defenders" => [],
+        "ending" => null,
+        "quarter" => null,
+        "scoring_method" => null,
+        "possessing_team" => null,
+        "defending_team" => null,
+        "gain" => null,
+        "is_turnover" => false,
+        "position_start" => null,
+        "position_finish" => null,
+        "origin" => null,
+        "source_language" => null
     ];
-    
-    public static $endings = [
-        self::TACKLE, self::SACK, self::FUMBLE, self::INTERCEPTION,
-        self::PASS_DEFLECTION, self::PUNT_BLOCK, self::OTHER
-    ];
-    
-    public static $defensive_play_types = [
-        self::INTERCEPTION_RETURN, self::FUMBLE_RETURN, self::FUMBLE_RECOVERY
-    ];
-    
-    public static $special_play_types = [
-        self::KICK, self::PUNT, self::KICKOFF_RETURN, self::KICK_RETURN,
-        self::PUNT_RETURN, self::PUNT_RECOVERY
-    ];
-    
-    public static $scoring_methods = [
-        self::TD, self::FG, self::SF, self::XP, self::X2P, self::D2P
-    ];
-
-    private $is_scoring_play = 0;
-    private $play_category;
-    private $play_type;
-    private $author = null;
-    private $passer = null;
-    private $defenders = [];
-    private $ending = null;
-    private $quarter = null;
-    private $scoring_method = null;
-    private $possessing_team;
-    private $defending_team;
-    private $gain = null;
-    private $is_turnover = 0;
-    private $position_start = null;
-    private $position_finish = null;
-    private $origin = null;
     
     /**
      * Class constructor. Can be used in two different ways — by defining $play_type, $possessing_team
@@ -114,6 +59,9 @@ class Play
      */
     public function __construct($play_type, string $possessing_team = "", string $defending_team = "")
     {
+        $this->values["source_language"] = self::$default_language;
+        $this->play = self::$default_language;
+        
         if (is_array($play_type)) {
             $import = $play_type;
             
@@ -151,25 +99,23 @@ class Play
             throw new Exception("Defending team cannot be empty");
         }
             
-        if (in_array($play_type, self::$offensive_play_types)) {
-            $this->play_category = self::OFFENSIVE_PLAY;
-            $this->play_type = $play_type;
-        } else if (in_array($play_type, self::$special_play_types)) {
-            $this->play_category = self::SPECIAL_PLAY;
-            $this->play_type = $play_type;
-        } else if (in_array($play_type, self::$defensive_play_types)) {
-            $this->play_category = self::DEFENSIVE_PLAY;
-            $this->play_type = $play_type;
+        if (in_array($play_type, self::OFFENSIVE_PLAY_TYPES)) {
+            $this->values["play_category"] = self::OFFENSIVE_PLAY;
+            $this->values["play_type"] = $play_type;
+        } else if (in_array($play_type, self::SPECIAL_PLAY_TYPES)) {
+            $this->values["play_category"] = self::SPECIAL_PLAY;
+            $this->values["play_type"] = $play_type;
+        } else if (in_array($play_type, self::DEFENSIVE_PLAY_TYPES)) {
+            $this->values["play_category"] = self::DEFENSIVE_PLAY;
+            $this->values["play_type"] = $play_type;
         } else {
             throw new Exception("Unknown play type: \"" . $play_type . "\"");
         }
             
-        $this->possessing_team = $possessing_team;
-        $this->defending_team = $defending_team;
-        
+        $this->values["possessing_team"] = $possessing_team;
+        $this->values["defending_team"] = $defending_team;
         
         if (isset($import) && count($import) > 0) {
-
             foreach ($import as $name=>$value) {
                 if ($value === null) {
                     continue;
@@ -179,11 +125,104 @@ class Play
                 
                 if (method_exists($this, $method_name)) {
                     $this->{$method_name}($value);
-                } else if (property_exists($this, $name)){
-                    $this->$name = $value;
+                } else if (array_key_exists($name, $this->values)){
+                    $this->values[$name] = $value;
                 }
             }
         }
+    }
+    
+    /**
+     * STATIC METHOD
+     * Sets the default language for all future instances of Play.
+     *
+     * @param   string  $language   Default language, e.g. "en"
+     *
+     * @return  void         
+     */    
+    public static function setDefaultLanguage(string $language): void
+    {
+        if (strlen(trim($language)) == 0) {
+            throw new Exception("Default language of Play cannot be empty");
+        }
+        
+        self::$default_language = $language;
+    }
+    
+    /**
+     * Sets active language of play.
+     *
+     * @param   string  $language               Language of the name variables, e.g. "en"
+     * @paeam   bool    $use_exising_values     Set to true, if 
+     *
+     * @return  void         
+     */
+    public function setLanguage(string $language, bool $use_existing_values = false): void
+    {
+        if (strlen(trim($language)) == 0) {
+            throw new Exception("Language of Play cannot be empty");
+        }
+        $this->language = $language;
+    }
+    
+    /**
+     * Returns current language of play.
+     *
+     * @return  string     Language value
+     */
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    /**
+     * Checks if play is values in defined language.
+     *
+     * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
+     * @param   string  $attrubute  (optional) Name of the attribute to be checked.
+     *                              If is set, then method checks existance of
+     *                              attribute, not just language.
+     * @return  bool                True if translation exists, False if not.
+     */
+    public function isTranslated($language, string $attribute = null): bool
+    {
+        // If set set languge equals to source language, then it's not translated at all
+        if ($this->language == $this->values["source_language"]) {
+            return false;
+        }
+        
+        // If $translation property doesn't have $language value or $language is not equal
+        // to language property of the object, then language setting is not loaded
+        if (!array_key_exists($language, $this->translation) || $this->language != $language) {
+            return false;
+        }
+        
+        if ($attribute !== null) {
+            if (!$this->data_handler) {
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+            }
+            
+            if (array_key_exists($attribute, $this->translation[$language])) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Set hadler for reading translation of the play
+     *
+     * @param   Keeper  $data_handler   Keeper object for storing data
+     *
+     * @return  void         
+     */
+    public function setDataHandler(Keeper $data_handler): void
+    {
+        $this->data_handler = $data_handler;
+        $this->translation = $this->data_handler->read("play");
     }
     
     /**
@@ -200,8 +239,8 @@ class Play
             throw new Exception("Play type cannot be empty");
         }
         
-        if (in_array($play_type, self::$endings)) {
-            $this->ending = $play_type;
+        if (in_array($play_type, self::ENDINGS)) {
+            $this->values["ending"] = $play_type;
         } else {
             throw new Exception("Unknown play ending: \"" . $play_type . "\"");
         }
@@ -217,15 +256,15 @@ class Play
     {
         if (is_array($defenders) && count($defenders) > 0) {
             foreach ($defenders as $defender) {
-                if (is_string($defender) && !in_array($defender, $this->defenders)) {
-                    $this->defenders[] = $defender;
+                if (is_string($defender) && !in_array($defender, $this->values["defenders"])) {
+                    $this->values["defenders"][] = $defender;
                 }
             }
         }
         
         if (is_string($defenders)) {
-            if (!in_array($defenders, $this->defenders)) {
-                $this->defenders[] = $defenders;
+            if (!in_array($defenders, $this->values["defenders"])) {
+                $this->values["defenders"][] = $defenders;
             }
         }
     }
@@ -238,9 +277,9 @@ class Play
      */    
     public function setInterception(string $defender = ""): void
     {
-        $this->is_turnover = 1;
-        $this->defenders = [$defender];
-        $this->ending = self::INTERCEPTION;
+        $this->values["is_turnover"] = 1;
+        $this->values["defenders"] = [ $defender ];
+        $this->values["ending"] = self::INTERCEPTION;
     }
     
     /**
@@ -250,7 +289,7 @@ class Play
      */
     public function setTurnover(bool $is_turnover): void
     {
-        $this->is_turnover = $is_turnover;
+        $this->values["is_turnover"] = $is_turnover;
     }
 
     /**
@@ -260,7 +299,7 @@ class Play
      */
     public function setResult(bool $is_scoring_play): void
     {
-        $this->is_scoring_play = $is_scoring_play;
+        $this->values["is_scoring_play"] = $is_scoring_play;
     }
     
     /**
@@ -275,7 +314,7 @@ class Play
             throw new Exception("Author cannot be empty");
         }
         
-        $this->author = $author;
+        $this->values["author"] = $author;
     }
     
     /**
@@ -290,7 +329,7 @@ class Play
             throw new Exception("Passer cannot be empty");
         }
         
-        $this->passer = $passer;
+        $this->values["passer"] = $passer;
     }
     
     /**
@@ -300,7 +339,7 @@ class Play
      */
     public function setOrigin(string $origin): void
     {
-        $this->origin = $origin;
+        $this->values["origin"] = $origin;
     }
     
     /**
@@ -311,11 +350,11 @@ class Play
      */    
     public function setScoringMethod(string $method = self::TD): Void
     {
-        if (!in_array($method, self::$scoring_methods)) {
+        if (!in_array($method, self::SCORING_METHODS)) {
             throw new Exception("Unknown scoring method \"" . $method . "\"");
         }
         
-        $this->scoring_method = $method;
+        $this->values["scoring_method"] = $method;
         $this->setResult(true);
     }
     
@@ -326,7 +365,7 @@ class Play
      */
     public function setGain(int $gain)
     {
-        $this->gain = $gain;
+        $this->values["gain"] = $gain;
     }
     
     /**
@@ -336,7 +375,7 @@ class Play
      */
     public function setPositionStart(int $start)
     {
-        $this->position_start = $start;
+        $this->values["position_start"] = $start;
     }
     
     /**
@@ -346,7 +385,7 @@ class Play
      */
     public function setPositionFinish(int $finish)
     {
-        $this->position_finish = $finish;
+        $this->values["position_finish"] = $finish;
     }
     
     /**
@@ -360,7 +399,111 @@ class Play
             throw new Exception("Incorrect quarter \"" . $quarter . "\"");            
         }
         
-        $this->quarter = $quarter;
+        $this->values["quarter"] = $quarter;
+    }
+    
+    /**
+     * Service function to return team and translate it if needed. Publicly used via
+     * shortcuts getPossessingTeam() and getDefendingTeam()
+     *
+     * @param   string      $team       Kind of the team ("possessing_team" or "defending_team")
+     * @param   boolean     $abbr       (optional) Set to true if team name should be
+     *                                  returned in Abbr.
+     * @return  string                  Team name or null
+     */
+    private function getTeam(string $team_type, $abbr = false) {
+        if (!(array_key_exists($team_type, $this->values) || strlen(trim($this->values[$team_type])) == 0)) {
+            return null;
+        }
+        
+        if ($this->isTranslated($this->language)) {
+            if (!$this->data_handler) {
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+            }
+            $team = new Team($this->values[$team_type]);
+            $team->setDataHandler($this->data_handler);
+            $team->setId($team->full_name);
+            $team->read();
+            if ($team->isTranslated("ru")) {
+                $team->setLanguage("ru", true);
+            }
+            if ($abbr) {
+                return $team->abbr;                
+            }
+            return $team->full_name;
+        }
+        
+        return $this->values[$team_type];       
+    }
+    
+    public function getPossessingTeam(bool $abbr = false): ?string { return $this->getTeam("possessing_team", $abbr); }
+    public function getDefendingTeam(bool $abbr = false): ?string { return $this->getTeam("defending_team", $abbr); }
+    
+    /**
+     * Service function to return player and translate name if needed. Publicly used via
+     * shortcuts getAuthor() and getPasser()
+     *
+     * @param   string      $team       Kind of the player ("author" or "passer")
+     * @param   boolean     $include_position_and_number   (optional) Set to true if
+     *                                  player name should include position and number
+     * @return  string                  Player name or null
+     */
+    private function getPlayer(string $player_type, $include_position_and_number = false) {
+        if (!(array_key_exists($player_type, $this->values) || strlen(trim($this->values[$player_type])) == 0)) {
+            return null;
+        }
+        
+        if ($this->isTranslated($this->language)) {
+            if (!$this->data_handler) {
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+            }
+            $player = new Player($this->values[$player_type]);
+            $player->setDataHandler($this->data_handler);
+            $player->setId($this->values["possessing_team"] . '/' . $player->getFullName());
+            $player->read();
+            if ($player->isTranslated("ru")) {
+                $player->setLanguage("ru", true);
+            }
+            return $player->getFullName($include_position_and_number);
+        }
+        
+        return $this->values[$player_type];       
+    }
+    
+    public function getAuthor(bool $pos_and_no = false): ?string { return $this->getPlayer("author", $pos_and_no); }
+    public function getPasser(bool $pos_and_no = false): ?string { return $this->getPlayer("passer", $pos_and_no); }
+
+    /**
+     * Return list of defending players of the play and translate their names if needed.
+     *
+     * @param   boolean     $include_position_and_number   (optional) Set to true if
+     *                                  player name should include position and number
+     * @return  array                   List of defending players
+     */    
+    public function getDefenders($include_position_and_number = false) {
+        if ($this->isTranslated($this->language)) {
+            if (!$this->data_handler) {
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+            }
+            
+            $defenders = [];
+            
+            foreach ($this->values["defenders"] as $defender) {
+                $player = new Player($defender);
+                $player->setDataHandler($this->data_handler);
+                $player->setId($this->values["defending_team"] . '/' . $player->getFullName());
+                $player->read();
+                if ($player->isTranslated("ru")) {
+                    $player->setLanguage("ru", true);
+                }
+                
+                $defenders[] = $player->getFullName($include_position_and_number);
+            }
+            
+            return $defenders;
+        }
+        
+        return $this->values["defenders"];       
     }
     
     /**
@@ -374,19 +517,26 @@ class Play
         if (mb_substr($name, 0, 3) == "get") {
             $property = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
             
-            if (!property_exists($this, $property)) {
+            if (!array_key_exists($property, $this->values)) {
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
             }
             
-            return $this->$property;
+            if ($this->isTranslated($this->language, $this->values[$property])) {
+                if (!$this->data_handler) {
+                    throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+                }
+                return $this->translation[$this->language][$this->values[$property]];
+            }
+            
+            return $this->values[$property];
         } else if (mb_substr($name, 0, 2) == "is") {
             $property = Inflector::camelCaseToUnderscore($name);
             
-            if (!property_exists($this, $property)) {
+            if (!array_key_exists($property, $this->values)) {
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
             }
             
-            return $this->$property;
+            return $this->values[$property];
         } else {
             throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
         }
@@ -400,14 +550,6 @@ class Play
      */
     public function export(): array
     {
-        $export = get_object_vars($this);
-        
-        foreach ($export as $name => $value) {
-            if ($name == "logger" || $value === null) {
-                unset($export[$name]);
-            }
-        }
-        
-        return $export;
+        return $this->values;
     }
 }
