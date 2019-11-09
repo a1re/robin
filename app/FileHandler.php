@@ -121,7 +121,6 @@ class FileHandler implements DataStorage
         }
         
         $filepath = $this->getFilePath($object_id, true);
-        
         if (file_exists($filepath) && is_file($filepath)) {
             return unlink($filepath);
         }
@@ -143,7 +142,6 @@ class FileHandler implements DataStorage
         }
         
         $filepath = $this->getFilePath($object_id);
-
         if (file_exists($filepath) && is_file($filepath)) {
             return parse_ini_file($filepath, true);
         }

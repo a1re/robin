@@ -79,7 +79,6 @@ class Keeper
         }
         
         $data = $this->handler->read($object_id);
-        
         if ($data) {
             $this->cache[$object_id] = $data;
         }

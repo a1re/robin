@@ -127,7 +127,6 @@ trait Language
             throw new Exception("Please set handler with Essence::setDataHandler() method to read data");
         }
         
-        
         if (strlen($this->id) == 0) {
             throw new Exception(
                 "Please set id with Essence::setId() method for ".
