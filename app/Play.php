@@ -440,24 +440,18 @@ class Play extends GameTerms
     public function getDefendingTeam(bool $abbr = false): ?string { return $this->getTeam("defending_team", $abbr); }
     
     /**
-     * Service function to return player and translate name if needed. Publicly used via
-     * shortcuts getAuthor() and getPasser()
+     * Return play author name and translate it if needed.
      *
-     * @param   string      $team       Kind of the player ("author" or "passer")
      * @param   boolean     $include_position_and_number   (optional) Set to true if
      *                                  player name should include position and number
      * @return  string                  Player name or null
      */
-    private function getPlayer(string $player_type, $include_position_and_number = false) {
-        if (!(array_key_exists($player_type, $this->values) || strlen(trim($this->values[$player_type])) == 0)) {
-            return null;
-        }
-        
+    public function getAuthor($include_position_and_number = false) {
         if ($this->isTranslated($this->language)) {
             if (!$this->data_handler) {
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
-            $player = new Player($this->values[$player_type]);
+            $player = new Player($this->values["author"]);
             $player->setDataHandler($this->data_handler);
             $player->setId($this->values["possessing_team"] . '/' . $player->getFullName());
             $player->read();
@@ -467,11 +461,57 @@ class Play extends GameTerms
             return $player->getFullName($include_position_and_number);
         }
         
-        return $this->values[$player_type];       
+        return $this->values["author"];       
     }
     
-    public function getAuthor(bool $pos_and_no = false): ?string { return $this->getPlayer("author", $pos_and_no); }
-    public function getPasser(bool $pos_and_no = false): ?string { return $this->getPlayer("passer", $pos_and_no); }
+    /**
+     * Return passer name and translate it if needed.
+     *
+     * @param   boolean     $include_position_and_number   (optional) Set to true if
+     *                                  player name should include position and number
+     * @param   boolean     $name_in_genitive   (optional) Set to true if returned name
+     *                                  should be in genitive case (if avalible)
+     * @return  string                  Player name or null
+     */
+    public function getPasser($include_position_and_number = false, $name_in_genitive = false) {
+        if ($this->isTranslated($this->language)) {
+            if (!$this->data_handler) {
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
+            }
+            $player = new Player($this->values["passer"]);
+            $player->setDataHandler($this->data_handler);
+            $player->setId($this->values["possessing_team"] . "/" . $player->getFullName());
+            $player->read();
+            if ($player->isTranslated("ru")) {
+                $player->setLanguage("ru", true);
+            }
+            
+            $name = "";
+            // If requested name in genitive, we retrieve first and last name in genitive
+            // and check the resulted string. If its zero length, we take nominative case.
+            if ($name_in_genitive == true) {
+                $name = trim($player->first_name_genitive . " " . $player->last_name_genitive);
+            }
+            
+            if (strlen($name) == 0) {
+                $name = $player->first_name . " " . $player->last_name;
+            }
+            
+            if ($include_position_and_number == true) {
+                $position = $player->position . " ";
+                if (strlen($player->number) > 0) {
+                    $number = " (#" . $player->number . ")";
+                } else {
+                    $number = "";
+                }
+                $name = $position . $name . $number;
+            }        
+            
+            return $name;
+        }
+        
+        return $this->values["passer"];       
+    }
 
     /**
      * Return list of defending players of the play and translate their names if needed.
