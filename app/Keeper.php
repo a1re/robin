@@ -72,7 +72,7 @@ class Keeper
      *
      * @return  array               Data in array format or FALSE if not found/read
      */
-    public function read(string $object_id)
+    public function read(string $object_id): array
     {
         if (array_key_exists($object_id, $this->cache)) {
             return $this->cache[$object_id];
@@ -81,6 +81,8 @@ class Keeper
         $data = $this->handler->read($object_id);
         if ($data) {
             $this->cache[$object_id] = $data;
+        } else {
+            $data = [];
         }
         
         return $data;
