@@ -10,6 +10,7 @@ use \Robin\Keeper;
 use \Robin\GameTerms;
 use \Robin\Team;
 use \Robin\Player;
+use \Robin\Interfaces\Translatable;
 
  /**
   * Class for Plays entities
@@ -17,11 +18,11 @@ use \Robin\Player;
   * @package    Robin
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
-class Play extends GameTerms
+class Play extends GameTerms implements Translatable
 {
     use Logger;
     
-    const TRANSLATION_ID = "play"; // id for file with terms translation
+    const TRANSLATION_ID = "gameterms"; // id for file with terms translation
     private static $default_language = "en";
     
     private $language;
@@ -222,14 +223,14 @@ class Play extends GameTerms
     public function setDataHandler(Keeper $data_handler): void
     {
         $this->data_handler = $data_handler;
-        $this->translation = $this->data_handler->read("play");
+        $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
     }
     
     /**
      * Sets ending of the play
      *
-     * @param   string  $play_type          Type of play, must be equal to one of preset play types from
-     *                                      Play::$endings
+     * @param   string  $play_type      Type of play, must be equal to one of preset
+     *                                  play types in Robin\GameTerms::ENDINGS
      */
     public function setEnding(string $play_type): void
     {
@@ -391,9 +392,10 @@ class Play extends GameTerms
     /**
      * Sets ending point of the play
      *
-     * @param   int    $start   Ending position, can be from 0 to 100
+     * @param   string    $quarter   Quarter, must be equal to one of quarters
+     *                               constants in Robin\GameTerms
      */
-    public function setQuarter(string $quarter)
+    public function setQuarter(string $quarter): void
     {
         if (!in_array($quarter, [self::Q1, self::Q2, self::Q3, self::Q4, self::OT])) {
             throw new Exception("Incorrect quarter \"" . $quarter . "\"");            
@@ -440,18 +442,24 @@ class Play extends GameTerms
     public function getDefendingTeam(bool $abbr = false): ?string { return $this->getTeam("defending_team", $abbr); }
     
     /**
-     * Return play author name and translate it if needed.
+     * Service function to return player and translate name if needed. Publicly used via
+     * shortcuts getAuthor() and getPasser()
      *
+     * @param   string      $team       Kind of the player ("author" or "passer")
      * @param   boolean     $include_position_and_number   (optional) Set to true if
      *                                  player name should include position and number
      * @return  string                  Player name or null
      */
-    public function getAuthor($include_position_and_number = false) {
+    private function getPlayer(string $player_type, $include_position_and_number = false) {
+        if (!(array_key_exists($player_type, $this->values) || strlen(trim($this->values[$player_type])) == 0)) {
+            return null;
+        }
+        
         if ($this->isTranslated($this->language)) {
             if (!$this->data_handler) {
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
-            $player = new Player($this->values["author"]);
+            $player = new Player($this->values[$player_type]);
             $player->setDataHandler($this->data_handler);
             $player->setId($this->values["possessing_team"] . '/' . $player->getFullName());
             $player->read();
@@ -461,57 +469,11 @@ class Play extends GameTerms
             return $player->getFullName($include_position_and_number);
         }
         
-        return $this->values["author"];       
+        return $this->values[$player_type];       
     }
     
-    /**
-     * Return passer name and translate it if needed.
-     *
-     * @param   boolean     $include_position_and_number   (optional) Set to true if
-     *                                  player name should include position and number
-     * @param   boolean     $name_in_genitive   (optional) Set to true if returned name
-     *                                  should be in genitive case (if avalible)
-     * @return  string                  Player name or null
-     */
-    public function getPasser($include_position_and_number = false, $name_in_genitive = false) {
-        if ($this->isTranslated($this->language)) {
-            if (!$this->data_handler) {
-                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
-            }
-            $player = new Player($this->values["passer"]);
-            $player->setDataHandler($this->data_handler);
-            $player->setId($this->values["possessing_team"] . "/" . $player->getFullName());
-            $player->read();
-            if ($player->isTranslated("ru")) {
-                $player->setLanguage("ru", true);
-            }
-            
-            $name = "";
-            // If requested name in genitive, we retrieve first and last name in genitive
-            // and check the resulted string. If its zero length, we take nominative case.
-            if ($name_in_genitive == true) {
-                $name = trim($player->first_name_genitive . " " . $player->last_name_genitive);
-            }
-            
-            if (strlen($name) == 0) {
-                $name = $player->first_name . " " . $player->last_name;
-            }
-            
-            if ($include_position_and_number == true) {
-                $position = $player->position . " ";
-                if (strlen($player->number) > 0) {
-                    $number = " (#" . $player->number . ")";
-                } else {
-                    $number = "";
-                }
-                $name = $position . $name . $number;
-            }        
-            
-            return $name;
-        }
-        
-        return $this->values["passer"];       
-    }
+    public function getAuthor(bool $pos_and_no = false): ?string { return $this->getPlayer("author", $pos_and_no); }
+    public function getPasser(bool $pos_and_no = false): ?string { return $this->getPlayer("passer", $pos_and_no); }
 
     /**
      * Return list of defending players of the play and translate their names if needed.
@@ -548,9 +510,9 @@ class Play extends GameTerms
     
     /**
      * Magic method for to acceess private properties. Properties are accessed via
-     * method with "get" prefix and property name in camelCase, e.g. $this->play_type
+     * method with "get" prefix and property name in camelCase, e.g. $this->values["play_type"]
      * is access via method Play::getPlayType();. Properties with names starting with 
-     * cann be accessed withot get, e.g. Play::isTurnover() for $this->is_turnover;
+     * can be accessed withot get, e.g. Play::isTurnover() for $this->values["is_turnover"];
      */
     public function __call($name, $arguments)
     {
@@ -558,7 +520,7 @@ class Play extends GameTerms
             $property = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
             
             if (!array_key_exists($property, $this->values)) {
-                throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+                throw new Exception("Call to undefined method " . $name . "() in Robin\Play");
             }
             
             if ($this->isTranslated($this->language, $this->values[$property])) {
@@ -573,12 +535,12 @@ class Play extends GameTerms
             $property = Inflector::camelCaseToUnderscore($name);
             
             if (!array_key_exists($property, $this->values)) {
-                throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+                throw new Exception("Call to undefined method " . $name . "() in Robin\Play");
             }
             
             return $this->values[$property];
         } else {
-            throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
+            throw new Exception("Call to undefined method " . $name . "() in Robin\Play");
         }
     }
     
