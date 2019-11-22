@@ -177,7 +177,7 @@ class Play extends GameTerms implements Translatable
     }
 
     /**
-     * Checks if play is values in defined language.
+     * Checks if play has values in defined language.
      *
      * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
      * @param   string  $attrubute  (optional) Name of the attribute to be checked.

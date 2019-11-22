@@ -111,7 +111,7 @@ class Drive extends GameTerms
     }
     
     /**
-     * Sets active language of Drive.
+     * Sets active language of drive.
      *
      * @param   string  $language               Language of the name variables, e.g. "en"
      * @paeam   bool    $use_exising_values     Set to true, if 
@@ -138,7 +138,7 @@ class Drive extends GameTerms
     }
     
     /**
-     * Returns current language of play.
+     * Returns current language of drive.
      *
      * @return  string     Language value
      */
@@ -148,7 +148,7 @@ class Drive extends GameTerms
     }
 
     /**
-     * Checks if play is values in defined language.
+     * Checks if drive has values in defined language.
      *
      * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
      * @param   string  $attrubute  (optional) Name of the attribute to be checked.
