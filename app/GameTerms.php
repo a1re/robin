@@ -65,7 +65,7 @@ abstract class GameTerms
     const OT = "OT";
     
     const OFFENSIVE_PLAY_TYPES = [
-        self::RUN, self::PASS
+        self::RUN, self::PASS, self::OTHER
     ];
     
     const ENDINGS = [

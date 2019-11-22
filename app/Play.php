@@ -140,7 +140,7 @@ class Play extends GameTerms implements Translatable
      * @param   string  $language   Default language, e.g. "en"
      *
      * @return  void         
-     */    
+     */
     public static function setDefaultLanguage(string $language): void
     {
         if (strlen(trim($language)) == 0) {
