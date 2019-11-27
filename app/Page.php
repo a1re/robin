@@ -3,11 +3,11 @@
 namespace Robin;
 
 use \Exception;
-use \Exceptions\ParsingException;
+use \Robin\FileHandler;
 use \Robin\Logger;
 
  /**
-  * Wrapper for parsing objects. Class constructor receives url to be parsed
+  * Wrapper for page parsing. Class constructor receives url to be parsed
   * as @param, parses via Simple HTML Dom function and selects proper class
   * to work with information. Every class has it's own methods.
   * 
@@ -15,48 +15,52 @@ use \Robin\Logger;
   * @author     Yuriy Marin <yuriy.marin@gmail.com>
   */
   
-class Parser
+class Page
 {
     use Logger;
     
-    public $engine_list = [ "\\ESPN\\Handler" => ["espn.com", "www.espn.com", "robin.local", "robin.firstandgoal.in"]];
-    public $page;
+    const ENGINES = [
+        "ESPN/Gamecast" => [
+            "class" => "\\Robin\\ESPN\\Gamecast",
+            "pattern" => "#https://(www\.)?espn\.com/(nfl|college-football)/game/_/gameId/([0-9]+)#i",
+            "language" => "en"
+        ]
+    ];
     
+    private $engine;
+    
+    /**
+     * Class constructor
+     *
+     * @param   string  $url    URL of the page to be parsed
+     */
     public function __construct(string $url)
     {
-        require_once "simplehtmldom_1_9/simple_html_dom.php";
-        
-        // Checking if we have SimpleHTMLDOM loaded
-        if (!function_exists("file_get_html")) {
-            throw new ParsingException("Parsing function not defined");
-        }
-        
-        // Checking if we creating object with a valid URL
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            throw new ParsingException('Invalid URL');
-        }
-        $domain = parse_url($url, PHP_URL_HOST);
-        
-        $engine = null;
-        
-        // Checking if URL belongs list of domains we can parse
-        foreach ($this->engine_list as $engine_key => $supported_domains) {
-            if (in_array($domain, $supported_domains)) {
-                $engine = '\Robin'.$engine_key;
-                break;
-            }
-        }
-
-        // Checking if engine was found and class exists
-        if (!$engine || !class_exists($engine)) {
-            throw new Exception('No engine found for the domain');
-        }
-        
+        $engine_id = $this->getEngine($url);
+        $engine_class = self::ENGINES[$engine_id]["class"];
+        $engine_lang = self::ENGINES[$engine_id]["language"];
         $url = $this->cache($url);
         
-        $html = file_get_html($url);
+        $this->engine = new $engine_class($url, $engine_lang);
+    }
+    
+    /**
+     * Getting the right class to work with passed URL by matching
+     * the ENGINES patterns
+     *
+     * @param   string  $url    URL of the page to be parsed
+     * @return  string          Engine id from Page::ENGINES
+     */
+    private static function getEngine(string $url): string
+    {
+        // Getting engine
+        foreach (self::ENGINES as $engine_id => $values) {
+            if(preg_match($values["pattern"], $url)) {
+                return $engine_id;
+            }
+        }
         
-        $this->page = new $engine($html);
+        throw new Exception("Unsupported URL");
     }
     
     /**
@@ -65,32 +69,16 @@ class Parser
      * and provides local URL if it's fresh (under 30 seconds)
      *
      * @param   string  $url    URL of parsed page
-     *
      * @return  string          Cached file path or original URL if caching is
      *                          not avalible
      */
     private function cache(string $url): string
     {
-        if (!defined("ROOT")) {
-            $backtrace = debug_backtrace();
-            $i = count($backtrace)-1;
-            if (array_key_exists($i, $backtrace) && array_key_exists("file", $backtrace[$i])) {
-                $dir = dirname($backtrace[$i]["file"]) . "/cache";
-            } else {
-                $dir = __DIR__ . "/cache";
-            }
-        } else {
-            $dir = ROOT . "/cache";
-        }
-        
-        if (!is_dir($dir)) {
-            mkdir($dir, 0744);
-        }
-        
-        $filename = $dir . "/" . md5($url);
+        $fh = new FileHandler("cache");
+        $filename = $fh->getFilePath(md5($url),true);
         
         if (file_exists($filename)) {
-            // If file exists, but  created more then 30 seconds ago, we delete it
+            // If file exists, but created more then 30 seconds ago, we delete it
             $created_time = filectime($filename);
             if($created_time && time() > $created_time+300) {
                 unlink($filename);
@@ -114,16 +102,16 @@ class Parser
                 fclose($fp);
                 chmod($filename, 0744);
                 
-                $files = scandir($dir);
+                $files = scandir($fh->dir);
                 
                 // As long as cache creating is considered to be unoften operation,
                 // we use it as a change for garbage collecting. We remove all
                 // files from cache folder that were created more then 30 sec ago.
                 foreach ($files as $existing_file) {
-                    if (is_file($dir . "/" . $existing_file)) {
-                        $created_time = filectime($dir . "/" . $existing_file);
+                    if (is_file($fh->dir . "/" . $existing_file)) {
+                        $created_time = filectime($fh->dir . "/" . $existing_file);
                         if ($created_time && time() > $created_time+300) {
-                            unlink($dir . "/" . $existing_file);
+                            unlink($fh->dir . "/" . $existing_file);
                         }
                     }
                 }
@@ -141,7 +129,6 @@ class Parser
      */
     public function __call(string $name, array $arguments)
     {
-        return call_user_func_array([$this->page, $name], $arguments);
+        return call_user_func_array([$this->engine, $name], $arguments);
     }
-
 }
