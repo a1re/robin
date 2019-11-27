@@ -17,7 +17,43 @@ class FileHandler implements DataStorage
 {
     use Logger;
     
+    public $dir;
+    
+    /**
+     * Class constructor
+     *
+     * @param   string  $dir    Directory relativly to project root
+     */
     public function __construct(string $dir = "")
+    {
+        $root_dir = self::getRoot();
+        
+        if (strlen($dir) > 0) {
+            // If user defined $dir is ended with "/", we cut it off to avoid
+            // checking in further operations
+            if (substr($dir, -1) == "/") {
+                $dir = substr($dir, 0, -1);
+            }
+            
+            // Merging $dir with $root_dir to make full path&  If user defined $dir
+            // with starting "/", we join it directly, otherwise add missing slash
+            if (substr($dir, 0, 1) == "/") {
+                $root_dir = $root_dir . $dir;
+            } else {
+                $root_dir = $root_dir . "/" . $dir;
+            }
+        }
+        
+        $this->dir = $root_dir;
+    }
+    
+    /**
+     * STATIC METHOD
+     * Returns project root dir
+     *
+     * @return  string                project root dir
+     */
+    public static function getRoot(): string
     {
         // If environment doesn't have constant ROOT with root dir, we find it 
         // manualy with debug_backtrace;
@@ -37,23 +73,7 @@ class FileHandler implements DataStorage
             $root_dir = substr($root_dir, 0, -1);
         }
         
-        if (strlen($dir) > 0) {
-            // If user defined $dir is ended with "/", we cut it off to avoid
-            // checking in further operations
-            if (substr($dir, -1) == "/") {
-                $dir = substr($root_dir, 0, -1);
-            }
-            
-            // If user defined $dir is ended with "/", we cut it off to avoid
-            // writing to root
-            if (substr($dir, 0, 1) == "/") {
-                $root_dir = $root_dir.$dir;
-            } else {
-                $root_dir = $root_dir."/".$dir;
-            }
-        }
-        
-        $this->dir = $root_dir;
+        return $root_dir;
     }
     
     /**
@@ -161,7 +181,7 @@ class FileHandler implements DataStorage
      *
      * @return  string                      Output string, simplified and clean
      */
-    private function getFilePath(string $filename, bool $create_folders = false)
+    public function getFilePath(string $filename, bool $create_folders = false): string
     {
         if (mb_strlen($filename) == 0) {
             throw new Exception("Filename cannot be empty");
@@ -169,7 +189,8 @@ class FileHandler implements DataStorage
         
         if (mb_substr($filename, 0, 1) == "/") {
             return $filename;
-        }        
+        }
+        
         // Checking filename extension and adding "ini" if there is no one
         $lastname = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
         if (mb_strrpos($lastname, ".") === false && mb_substr($lastname, mb_strrpos($lastname, ".") + 1) !== "ini") {
