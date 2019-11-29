@@ -94,7 +94,7 @@ class Inflector
      *
      * @param   string  $str    Input string in snake_case
      * @return  string          Output string in separated words
-     */  
+     */
     public static function underscoreToWords(string $str): string
     {
         $words = preg_split('/(_|\s)/', $str);
@@ -104,6 +104,31 @@ class Inflector
         } else {
             return $words[0];
         }
+    }
+    
+    /**
+     * STATIC METHOD
+     *
+     * Selects plural form for passed $number according to its ending
+     * by $rules array.
+     *
+     * @param    int      $number    Number to base word form on
+     * @param    array    $rules     Array of rules, where keys are endings
+     *                               of numbers and values are word forms,
+     *                               e.g. [1=>"mouse", 2=>mice, ...]. Endings
+     *                               matching one-by-one and if nothing was
+     *                               found, function returns last form.
+     * @return   string              Word form
+     */
+    public static function pluralize(int $number, array $rules): string
+    {
+        foreach ($rules as $ending => $form) {
+            $n = mb_strlen($ending);
+            if (substr($number, (-1)*$n) == $ending) {
+                return $form;
+            }
+        }
+        return (string) end($rules);
     }
     
 }
