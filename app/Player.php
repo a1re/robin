@@ -18,8 +18,10 @@ class Player extends Essence
 {
     use Logger;
     
+    const TRANSLATION_ID = "stats"; // id for file with terms translation
+    
     protected static $default_language;
-
+    private $translation = [];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
                                            "int" => null, "rating" => null ],
@@ -215,6 +217,86 @@ class Player extends Essence
         
         $variable = $this->findStatsVariable($name);
         return $variable;
+    }
+    
+    /**
+     * Returns stats variables, joined to one string with $glue
+     *
+     * @param   string  $glue       string to put between variables
+     * @param   string  $category   (optional) Stats category. If not set,
+     *                              all stats will be returned;
+     * @return  string              Statis in one string
+     */
+    public function getJoinedStats(string $glue, string $category = ""): string
+    {
+        // if category is not set, it means that all stats are requested and we
+        // need to run through stat categories first
+        if (strlen($category) == 0) {
+            $stat_categories = $this->getStatsList(false);
+            $joined_stats = [ ];
+            foreach ($stat_categories as $category_name => $category_values) {
+                $joined_stats[] = $this->getJoinedStats($glue, $category_name);
+            }
+            
+            return implode($glue, $joined_stats);
+        }
+        
+        // if we have category, we run through variables and put them into string
+        $stats = $this->getStatsList(false, $category);
+        $joined_stats = [];
+        foreach ($stats as $stat_name => $stat_value) {
+            $joined_stats[] = $this->getStatString($stat_value, $stat_name);
+        }
+        
+        return implode($glue, $joined_stats);
+    }
+    
+    
+    /**
+     * Returns string of stat value and name
+     *
+     * @param   int       $number    Stat value
+     * @param   string    $name      Basic stats name
+     * @return  string               Plural form of stats variable
+     */
+    private function getStatString(int $number, string $name): string
+    {
+        // Check if translation is needed
+        if($this->language == self::$default_language) {
+            return $number . " " . $name;
+        }
+        
+        // If translation is needed, we check data handler to get data
+        if (!$this->data_handler) {
+            throw new Exception("Please set handler with Player::setDataHandler() method to read translation data");
+        }
+        
+        // Here and next conditional blocks: loading translation and check it existance
+        if (!is_array($this->translation) || count($this->translation) == 0) {
+            $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
+        }
+        
+        if(!array_key_exists($this->language, $this->translation)) {
+            return $number . " " . $name;
+        }
+        
+        if (!array_key_exists($name, $this->translation[$this->language])) {
+            return $number . " " . $name;
+        }
+        
+        // Run through rules and return accordance
+        $rules_source = explode(",", $this->translation[$this->language][$name]);
+        $rules = [ ];
+        foreach ($rules_source as $regulation) {
+            $components = explode(" ", trim($regulation));
+            if (count($components) > 1) {
+                $rules[$components[0]] = $components[1];
+            } else {
+                $rules[] = $components[0];
+            }
+        }
+        
+        return $number . " " . Inflector::pluralize($number, $rules);
     }
     
     /**
