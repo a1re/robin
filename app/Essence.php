@@ -247,6 +247,11 @@ class Essence implements Translatable
      */
     public function __call(string $name, array $arguments)
     {
+        if (substr($name, 0, 3) == "get") {
+            $attribute_name = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
+            return $this->getValue($attribute_name);
+        }
+        
         if (substr($name, 0, 3) != "set") {
             throw new Exception("Call to undefined method \"" . $name . "\" in Robin\Essence");
         }
@@ -279,7 +284,7 @@ class Essence implements Translatable
     
     /**
      * Magic method for attribute getting. Allows to get attributes by direct names
-     * like $this->first_name, that aliases to getValue("first_name", "john");
+     * like $this->first_name, that aliases to getValue("first_name");
      *
      * @return  void 
      */
