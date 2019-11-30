@@ -19,10 +19,10 @@ class Essence implements Translatable
 {
     use Logger;
     use Language;
-    
-    private $id;
+
     private $attributes = [];
     
+    protected $id;    
     protected $values;
     protected $category;
     protected static $default_language = "en";

@@ -26,9 +26,11 @@ class Team extends Essence
                                   "Old", "Ole", "Notre"];
     
     /**
-     * Class constructor
+     * Class constructor. Instance of team can be created with the name of a team
+     * or by restoring the array from Team::export() method.
      *
-     * @param   string  $full_name      Full name of the team
+     * @param   mixed  $full_name       Full name of the team. If array is passed,
+     *                                  it is used to restore full object.
      * @param   string  $short_name     (optional) Short name of the team
      * @param   string  $abbr           (optional) Abbreviation of the team
      */
@@ -48,6 +50,7 @@ class Team extends Essence
             if (!$this->import($full_name)) {
                 throw new Exception("Import from array failed");
             }
+            $this->id = $this->full_name;
             return;
         }
         

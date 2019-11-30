@@ -55,7 +55,7 @@ class Drive extends GameTerms
             
             if (array_key_exists("possessing_team", $import)) {
                 $possessing_team = $import["possessing_team"];
-                unset($import["play_type"]);
+                unset($import["possessing_team"]);
             }
             
             if (array_key_exists("defending_team", $import)) {

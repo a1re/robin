@@ -45,9 +45,12 @@ class Player extends Essence
                      ];
     
     /**
-     * Class constructor
+     * Class constructor. Instance of player can be created with the name of a player
+     * or by restoring the array from Player::export() method.
      *
-     * @param   string  $f_name     Full name or first name if $l_name is not null
+     * @param   mixed   $f_name     Full name or first name if $l_name is not null.
+     *                              If array is passe, it is used to restore full
+     *                              object.
      * @param   string  $l_name     (optional) Last name
      */
     public function __construct($f_name, $l_name = null)
@@ -87,6 +90,8 @@ class Player extends Essence
             $this->first_name = $f_name;
             $this->last_name = $l_name;
         }
+        
+        $this->id = $this->getFullName();
     }
     
     /**
