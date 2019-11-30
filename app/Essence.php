@@ -43,11 +43,44 @@ class Essence implements Translatable
     }
     
     /**
+     * Import essence values. Can be used array from Essence::export(). Pleas note
+     * that it imports only attributes that were defined in Essence::setAttributes();
+     * If no values of default language were imported, reset the language to actual.
+     *
+     * @param   array   $values     Array from Essence::export() or associative array
+     *                              with values, grouped by language.
+     * @return  bool                Returns true if values were successfully imported
+     *                              and false if not.
+     */
+    protected function import(array $import): bool
+    {
+        $imported_languages_list = [ ];
+        foreach ($import as $language => $values) {
+            if (!is_array($values)) {
+                continue;
+            }
+            if ($this->setValues($values, $language)) {
+                $imported_languages_list[] = $language;
+            }
+        }
+        
+        if (count($imported_languages_list) == 0) {
+            return false;
+        }
+        
+        $imported_language = reset($imported_languages_list);
+        if (!array_key_exists($this->language, $this->values) && $imported_language != $this->language) {
+            $this->language = $imported_language;
+        }
+        
+        return true;
+    }
+    
+    /**
      * STATIC METHOD
      * Sets the default language for all future instances of Essence.
      *
      * @param   string  $language   Default language, e.g. "en"
-     *
      * @return  void         
      */    
     public static function setDefaultLanguage(string $language): void
@@ -67,8 +100,7 @@ class Essence implements Translatable
      * automatically out of names.
      *
      * @param   array  $attrs   1-dimension list of attributes with labels or not.
-     *
-     * @return  void         
+     * @return  void
      */
     public function setAttributes(array $attrs): void
     {
@@ -89,11 +121,10 @@ class Essence implements Translatable
     
     /**
      * Get list of attributes of the essence. Accets booleaan param $show_labels.
-     * If it is set to true, returns assos array where keys are attribute names
+     * If it is set to true, returns associative array where keys are attribute names
      * and values are attrubute labels (e.g. ["first_name"=>"First name"]).
      *
      * @param   bool  $show_labels  (optional) True if attribute labels are needed.
-     *
      * @return  array         
      */
     public function getAttributes(bool $show_labels = false): array
@@ -109,7 +140,6 @@ class Essence implements Translatable
      * Sets id of the essence.
      *
      * @param   string  $id     Any string to identify the essence 
-     *
      * @return  void         
      */
     public function setId(string $id): void
@@ -138,7 +168,6 @@ class Essence implements Translatable
      * @param   string  $value              Value
      * @param   string  $language           (optional) Language of the value. If not set,
      *                                      default is used.
-     *
      * @return  void
      */
     private function setValue(string $attribute_name, string $value, string $language = ""): void
@@ -167,7 +196,6 @@ class Essence implements Translatable
      * @param   string  $attribute_name     Attribute name of the value
      * @param   string  $language           (optional) Language of the value. If not set,
      *                                      default is used.
-     *
      * @return  string                      Value or null
      */
     private function getValue(string $attribute_name, string $language = ""): ?string
@@ -200,21 +228,25 @@ class Essence implements Translatable
      *                              predefined with Essence::setAttributes()).
      * @param   string  $language   (optional) Language of the values. If not
      *                              set, active language is used.
-     *
-     * @return  void
+     * @return  bool                Returns true if values were set and false if no
+     *                              values were set.
      */
-    public function setValues(array $values, string $language = ""): void
+    public function setValues(array $values, string $language = ""): bool
     {
         if (strlen($language) == 0) {
             $language = $this->language;
         }
         
+        $count_set_values = 0;
         foreach ($values as $attrubute => $value) {
             $attribute = Inflector::simplify(Inflector::camelCaseToUnderscore($attrubute));
             if (in_array($attrubute, $this->getAttributes()) && (is_string($value) || is_numeric($value))) {
                 $this->values[$language][$attrubute] = $value;
+                $count_set_values++;
             }
         }
+        
+        return (bool) $count_set_values;
     }
 
     /**
@@ -222,7 +254,6 @@ class Essence implements Translatable
      *
      * @param   string  $language   (optional) Language of the values. If not
      *                              set, active language is used.
-     *
      * @return  array               List of values in associative array of null if
      *                              instance doesn't have values of the defined language.
      */
@@ -249,7 +280,11 @@ class Essence implements Translatable
     {
         if (substr($name, 0, 3) == "get") {
             $attribute_name = Inflector::camelCaseToUnderscore(mb_substr($name, 3));
-            return $this->getValue($attribute_name);
+            if (in_array($attribute_name, $this->getAttributes())) {
+                return $this->getValue($attribute_name);
+            } else {
+                throw new Exception("Call to undefined method \"" . $name . "\" in Robin\Essence");
+            }
         }
         
         if (substr($name, 0, 3) != "set") {

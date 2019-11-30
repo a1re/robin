@@ -50,12 +50,12 @@ class Player extends Essence
      * @param   string  $f_name     Full name or first name if $l_name is not null
      * @param   string  $l_name     (optional) Last name
      */
-    public function __construct(string $f_name, $l_name = null)
+    public function __construct($f_name, $l_name = null)
     {
         // If class doesn't have its own default language set, we take it from parent class
         if (!self::$default_language) {
             self::$default_language = parent::$default_language;
-        }        
+        }
         
         parent::__construct("Players");
         $this->language = self::$default_language;
@@ -63,7 +63,25 @@ class Player extends Essence
         $this->setAttributes(["first_name", "last_name", "first_name_genitive",
                               "last_name_genitive", "position", "number"]);
         
-        if (mb_strlen($l_name) === 0) {
+        // If the first passed argument is array, we assume it as restoration
+        // with array from export().
+        if (is_array($f_name) && count($f_name) > 0) {
+            // Taking stats away from passed array and then import values
+            // with Essence::import() method
+            if (is_array($f_name["stats"]) && count($f_name["stats"]) > 0) {
+                $stats = $f_name["stats"];
+            }
+            
+            if (isset($f_name["stats"])) {
+                unset($f_name["stats"]);
+            }
+            
+            if ($this->import($f_name)) {
+                $this->stats = $stats;
+            } else {
+                throw new Exception("Import from array failed");
+            }
+        } elseif (mb_strlen($l_name) === 0) {
             $this->splitFullName($f_name);
         } else {
             $this->first_name = $f_name;
@@ -374,5 +392,19 @@ class Player extends Essence
             }
         }
         return $arr;
+    }
+
+    /**
+     * Returns all values of the Player
+     *
+     * @return  array          Content of $this->values
+     */ 
+    public function export(bool $include_stats = false): array
+    {
+        $ret = $this->values;
+        if ($include_stats) {
+            $ret["stats"] = $this->stats;
+        }
+        return $ret;
     }
 }

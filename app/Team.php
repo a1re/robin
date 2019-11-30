@@ -24,7 +24,7 @@ class Team extends Essence
     private static $prefixes  = [ "San" , "New", "North", "Northern", "South", "Southern",
                                   "East", "Eastern", "West", "Western", "Central", "Middle",
                                   "Old", "Ole", "Notre"];
-
+    
     /**
      * Class constructor
      *
@@ -32,7 +32,7 @@ class Team extends Essence
      * @param   string  $short_name     (optional) Short name of the team
      * @param   string  $abbr           (optional) Abbreviation of the team
      */
-    public function __construct(string $full_name, string $short_name = "", string $abbr = "")
+    public function __construct($full_name, string $short_name = "", string $abbr = "")
     {
         // If class doesn't have its own default language set, we take it from parent class
         if (!self::$default_language) {
@@ -43,6 +43,13 @@ class Team extends Essence
         $this->language = self::$default_language;
         
         $this->setAttributes(["full_name", "short_name", "abbr", "img"]);
+        
+        if (is_array($full_name) && count($full_name) > 0) {
+            if (!$this->import($full_name)) {
+                throw new Exception("Import from array failed");
+            }
+            return;
+        }
         
         // If both full and short names are empty, we throw exception
         if (mb_strlen(trim($full_name)) == 0 && mb_strlen(trim($short_name)) == 0) {
