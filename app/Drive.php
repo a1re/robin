@@ -331,10 +331,11 @@ class Drive extends GameTerms
     }
     
     /**
-     * Retrieves play from massibe of plays by its number
+     * Retrieves play from list of plays by its number
      *
      * @param   int    $i   (optional) Number of the play starting from 1.
      *                      If nothing is set, return last one
+     * @return  Play        Object of Play
      */
     public function getPlay($i = null): ?Play
     {
@@ -347,6 +348,16 @@ class Drive extends GameTerms
            } 
         }
         return null;
+    }
+    
+    /**
+     * Retrieves full list of plays
+     *
+     * @return  array       Array of Play objects
+     */
+    public function getPlays(): array
+    {
+        return $this->values["plays"];
     }
     
     /**
