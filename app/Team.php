@@ -74,6 +74,7 @@ class Team extends Essence
         $this->full_name = $full_name;
         $this->short_name = $short_name;
         $this->abbr = $abbr;
+        $this->id = $this->full_name;
     }
     
     /**
