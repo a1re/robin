@@ -278,7 +278,7 @@ class Decompose
         
         $pattern = "(" . self::NAME_PATTERN_3W . ")\sdefensive\spat\sconversion";
         if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
-			$play = new Play(Play::KICK, self::$possessing_team, self::$defending_team);
+			$play = new Play(Play::PAT_RETURN, self::$possessing_team, self::$defending_team);
         	$play->setScoringMethod(Play::D2P);
         	$play->setOrigin($matches[0]);
         	$play->setAuthor($matches[1]);

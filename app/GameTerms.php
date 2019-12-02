@@ -33,7 +33,8 @@ abstract class GameTerms
     const KICK_RETURN = "kick return";
     const PUNT_RETURN = "punt return";
     const PUNT_RECOVERY = "punt recovery";
-
+    const PAT_RETURN = "PAT return";
+    
     // Defensive plays
     const DEFENSIVE_PLAY = "defensive";
     const INTERCEPTION_RETURN = "interception return";
@@ -79,7 +80,7 @@ abstract class GameTerms
     
     const SPECIAL_PLAY_TYPES = [
         self::KICK, self::PUNT, self::KICKOFF_RETURN, self::KICK_RETURN,
-        self::PUNT_RETURN, self::PUNT_RECOVERY
+        self::PUNT_RETURN, self::PUNT_RECOVERY, self::PAT_RETURN
     ];
     
     const SCORING_METHODS = [
