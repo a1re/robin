@@ -3,7 +3,6 @@
 namespace Robin;
 
 use \Exception;
-use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Essence;
 
@@ -18,7 +17,6 @@ class Team extends Essence
     use Logger;
     
     protected static $default_language;
-
     private static $postfixes = [ "State" => "SU", "A&M" => "A&M", "Southern" => "STH",
                                   "Tech" => "TU", "Force" => "FA"];
     private static $prefixes  = [ "San" , "New", "North", "Northern", "South", "Southern",
@@ -39,7 +37,7 @@ class Team extends Essence
         // If class doesn't have its own default language set, we take it from parent class
         if (!self::$default_language) {
             self::$default_language = parent::$default_language;
-        }        
+        }
         
         parent::__construct("Teams");
         $this->language = self::$default_language;
@@ -79,9 +77,9 @@ class Team extends Essence
     
     /**
      * STATIC METHOD
-     * Sets the default language for all future instances of Essence.
+     * Sets the default language for all future instances of Team.
      *
-     * @param   string  $language   Default language, e.g. "en"
+     * @param   string  $language   Default language, e.g. "en_US"
      *
      * @return  void         
      */    

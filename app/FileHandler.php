@@ -93,9 +93,9 @@ class FileHandler implements DataStorage
         $ini = "";
         
         // Composing ini source
-        foreach ($values as $language=>$values) {
+        foreach ($values as $locale=>$values) {
             if (is_array($values)) {
-                $ini .= "[" . $language . "]" . PHP_EOL;            
+                $ini .= "[" . $locale . "]" . PHP_EOL;            
                 foreach ($values as $attrubute => $translation) {
                     if (!is_string($translation) && !is_numeric($translation)) {
                         continue;

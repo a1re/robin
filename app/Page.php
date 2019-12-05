@@ -23,7 +23,7 @@ class Page
         "ESPN/Gamecast" => [
             "class" => "\\Robin\\ESPN\\Gamecast",
             "pattern" => "#https://(www\.)?espn\.com/(nfl|college-football)/game/_/gameId/([0-9]+)#i",
-            "language" => "en"
+            "language" => "en_US"
         ]
     ];
     
@@ -32,16 +32,21 @@ class Page
     /**
      * Class constructor
      *
-     * @param   string  $url    URL of the page to be parsed
+     * @param    string  $url       URL of the page to be parsed
+     * @param    string  $locale    (optional) Output locale
      */
-    public function __construct(string $url)
+    public function __construct(string $url, string $locale = "")
     {
         $engine_id = $this->getEngine($url);
         $engine_class = self::ENGINES[$engine_id]["class"];
-        $engine_lang = self::ENGINES[$engine_id]["language"];
+        $language = self::ENGINES[$engine_id]["language"];
         $url = $this->cache($url);
         
-        $this->engine = new $engine_class($url, $engine_lang);
+        if (strlen($locale) == 0) {
+            $locale = $language;
+        }
+        
+        $this->engine = new $engine_class($url, $language, $language);
     }
     
     /**

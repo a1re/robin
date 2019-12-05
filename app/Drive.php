@@ -23,7 +23,8 @@ class Drive extends GameTerms
     private static $default_language = "en";
     
     private $language;
-    private $translation = [];
+    private $locale;
+    private $translations = [];
     private $values = [
         "is_scoring_drive" => false,
         "home_score" => null,
@@ -45,13 +46,23 @@ class Drive extends GameTerms
      * @param   string  $defending_team     Id of the team that acts as defening 
      *                                      on the beginning of the drive
      */
-    public function __construct($possessing_team = "", string $defending_team = "")
+    public function __construct($possessing_team, string $defending_team = "")
     {
-        $this->values["source_language"] = self::$default_language;
-        $this->play = self::$default_language;
+        $this->language = self::$default_language;
+        $this->locale = self::$default_language;
         
         if (is_array($possessing_team)) {
             $import = $possessing_team;
+            
+            if (array_key_exists("language", $import)) {
+                $this->language = $import["language"];
+                unset($import["language"]);
+            }
+            
+            if (array_key_exists("play_type", $import)) {
+                $this->locale = $import["locale"];
+                unset($import["locale"]);
+            }
             
             if (array_key_exists("possessing_team", $import)) {
                 $possessing_team = $import["possessing_team"];
@@ -113,59 +124,54 @@ class Drive extends GameTerms
     /**
      * Sets active language of drive.
      *
-     * @param   string  $language               Language of the name variables, e.g. "en"
-     * @paeam   bool    $use_exising_values     Set to true, if 
+     * @param   string  $locale               Locale of the name variables, e.g. "en_US"
+     * @paeam   bool    $use_exising_values   Set to true, if 
      *
      * @return  void         
      */
-    public function setLanguage(string $language, bool $use_existing_values = false): void
+    public function setLocale(string $locale, bool $use_existing_values = false): void
     {
-        if (strlen(trim($language)) == 0) {
-            throw new Exception("Language of Drive cannot be empty");
+        if (strlen(trim($locale)) == 0) {
+            throw new Exception("Locale of Drive cannot be empty");
         }
         if (is_array($this->values["plays"]) && count($this->values["plays"]) > 0) {
             foreach ($this->values["plays"] as $i=>$play) {
                 if (is_object($play)) {
                     $reflect = new \ReflectionClass($play);
                     if ($reflect->getShortName() === 'Play') {
-                        $this->values["plays"][$i]->setLanguage($language, $use_existing_values);
+                        $this->values["plays"][$i]->setLocale($locale, $use_existing_values);
                         continue;
                     }
                 }
             }
         }
-        $this->language = $language;
+        $this->locale = $locale;
     }
     
     /**
-     * Returns current language of drive.
+     * Returns current locale
      *
-     * @return  string     Language value
+     * @return  string     Locale value
      */
-    public function getLanguage(): string
+    public function getLocale(): string
     {
-        return $this->language;
+        return $this->locale;
     }
-
+    
     /**
-     * Checks if drive has values in defined language.
+     * Checks if drive is localized defined language.
      *
-     * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
+     * @param   string  $locale     Locale name to be checked, e.g. "en_US". Case matters
      * @param   string  $attrubute  (optional) Name of the attribute to be checked.
      *                              If is set, then method checks existance of
-     *                              attribute, not just language.
+     *                              attribute, not just locale.
      * @return  bool                True if translation exists, False if not.
      */
-    public function isTranslated($language, string $attribute = null): bool
+    public function isTranslated($locale, string $attribute = null): bool
     {
-        // If set set languge equals to source language, then it's not translated at all
-        if ($this->language == $this->values["source_language"]) {
-            return false;
-        }
-        
-        // If $translation property doesn't have $language value or $language is not equal
-        // to language property of the object, then language setting is not loaded
-        if (!array_key_exists($language, $this->translation) || $this->language != $language) {
+        // If $this->translations property doesn't have set of values in $locale
+        // then language setting is not loaded
+        if (!array_key_exists($locale, $this->translations)) {
             return false;
         }
         
@@ -174,11 +180,13 @@ class Drive extends GameTerms
                 throw new Exception("Please set handler with Drive::setDataHandler() method to read translation data");
             }
             
-            if (array_key_exists($attribute, $this->translation[$language])) {
+            if (array_key_exists($attribute, $this->translations[$locale])) {
                 return true;
             }
+            
             return false;
         }
+        
         return true;
     }
     
@@ -413,11 +421,11 @@ class Drive extends GameTerms
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
             }
             
-            if ($this->isTranslated($this->language, $this->values[$property])) {
+            if ($this->isTranslated($this->locale, $this->values[$property])) {
                 if (!$this->data_handler) {
                     throw new Exception("Please set handler with Drive::setDataHandler() method to read translation data");
                 }
-                return $this->translation[$this->language][$this->values[$property]];
+                return $this->translations[$this->locale][$this->values[$property]];
             }
             
             return $this->values[$property];
@@ -443,19 +451,23 @@ class Drive extends GameTerms
      */
     public function export(): array
     {
-        $values = $this->values;
-        if (is_array($values["plays"]) && count($values["plays"]) > 0) {
-            foreach ($values["plays"] as $i=>$play) {
+        $export = $this->values;
+        if (is_array($export["plays"]) && count($export["plays"]) > 0) {
+            foreach ($export["plays"] as $i=>$play) {
                 if (is_object($play)) {
                     $reflect = new \ReflectionClass($play);
                     if ($reflect->getShortName() === 'Play') {
-                        $values["plays"][$i] = $play->export();
+                        $export["plays"][$i] = $play->export();
                         continue;
                     }
                 }
-                unset ($values["plays"][$i]);
+                unset ($export["plays"][$i]);
             }
         }
-        return $values;
+        $export["language"] = $this->language;
+        if (isset($this->locale)) {
+            $export["locale"] = $this->locale;
+        }
+        return $export;
     }
 }

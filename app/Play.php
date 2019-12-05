@@ -23,10 +23,11 @@ class Play extends GameTerms implements Translatable
     use Logger;
     
     const TRANSLATION_ID = "gameterms"; // id for file with terms translation
-    private static $default_language = "en";
+    private static $default_language = "en_US";
     
     private $language;
-    private $translation = [];
+    private $locale;
+    private $translations = [];
     private $values = [
         "is_scoring_play" => false,
         "play_category" => null,
@@ -43,8 +44,7 @@ class Play extends GameTerms implements Translatable
         "is_turnover" => false,
         "position_start" => null,
         "position_finish" => null,
-        "origin" => null,
-        "source_language" => null
+        "origin" => null
     ];
     
     /**
@@ -60,11 +60,21 @@ class Play extends GameTerms implements Translatable
      */
     public function __construct($play_type, string $possessing_team = "", string $defending_team = "")
     {
-        $this->values["source_language"] = self::$default_language;
-        $this->play = self::$default_language;
+        $this->language = self::$default_language;
+        $this->locale = self::$default_language;
         
         if (is_array($play_type)) {
             $import = $play_type;
+            
+            if (array_key_exists("language", $import)) {
+                $this->language = $import["language"];
+                unset($import["language"]);
+            }
+            
+            if (array_key_exists("play_type", $import)) {
+                $this->locale = $import["locale"];
+                unset($import["locale"]);
+            }
             
             if (array_key_exists("play_type", $import)) {
                 $play_type = $import["play_type"];
@@ -137,7 +147,7 @@ class Play extends GameTerms implements Translatable
      * STATIC METHOD
      * Sets the default language for all future instances of Play.
      *
-     * @param   string  $language   Default language, e.g. "en"
+     * @param   string  $language   Default language, e.g. "en_US"
      *
      * @return  void         
      */
@@ -151,50 +161,45 @@ class Play extends GameTerms implements Translatable
     }
     
     /**
-     * Sets active language of play.
+     * Sets active locale of play.
      *
-     * @param   string  $language               Language of the name variables, e.g. "en"
+     * @param   string  $locale                 Output locale of the variables, e.g. "en_US"
      * @paeam   bool    $use_exising_values     Set to true, if 
      *
-     * @return  void         
+     * @return  void
      */
-    public function setLanguage(string $language, bool $use_existing_values = false): void
+    public function setLocale(string $locale, bool $use_existing_values = false): void
     {
-        if (strlen(trim($language)) == 0) {
-            throw new Exception("Language of Play cannot be empty");
+        if (strlen(trim($locale)) == 0) {
+            throw new Exception("Locale of Play cannot be empty");
         }
-        $this->language = $language;
+        $this->locale = $locale;
     }
     
     /**
-     * Returns current language of play.
+     * Returns current locale of play.
      *
-     * @return  string     Language value
+     * @return  string     Locale value
      */
-    public function getLanguage(): string
+    public function getLocale(): string
     {
-        return $this->language;
+        return $this->locale;
     }
-
+    
     /**
-     * Checks if play has values in defined language.
+     * Checks if play is localized defined language.
      *
-     * @param   string  $language   Language name to ve checked, e.g. "en". Case matters
+     * @param   string  $locale     Locale name to be checked, e.g. "en_US". Case matters
      * @param   string  $attrubute  (optional) Name of the attribute to be checked.
      *                              If is set, then method checks existance of
-     *                              attribute, not just language.
+     *                              attribute, not just locale.
      * @return  bool                True if translation exists, False if not.
      */
-    public function isTranslated($language, string $attribute = null): bool
+    public function isTranslated($locale, string $attribute = null): bool
     {
-        // If set set languge equals to source language, then it's not translated at all
-        if ($this->language == $this->values["source_language"]) {
-            return false;
-        }
-        
-        // If $translation property doesn't have $language value or $language is not equal
-        // to language property of the object, then language setting is not loaded
-        if (!array_key_exists($language, $this->translation) || $this->language != $language) {
+        // If $this->translations property doesn't have set of values in $locale
+        // then language setting is not loaded
+        if (!array_key_exists($locale, $this->translations)) {
             return false;
         }
         
@@ -203,7 +208,7 @@ class Play extends GameTerms implements Translatable
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
             
-            if (array_key_exists($attribute, $this->translation[$language])) {
+            if (array_key_exists($attribute, $this->translations[$locale])) {
                 return true;
             }
             
@@ -223,7 +228,7 @@ class Play extends GameTerms implements Translatable
     public function setDataHandler(Keeper $data_handler): void
     {
         $this->data_handler = $data_handler;
-        $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
+        $this->translations = $this->data_handler->read(self::TRANSLATION_ID);
     }
     
     /**
@@ -523,11 +528,11 @@ class Play extends GameTerms implements Translatable
                 throw new Exception("Call to undefined method " . $name . "() in Robin\Play");
             }
             
-            if ($this->isTranslated($this->language, $this->values[$property])) {
+            if ($this->isTranslated($this->locale, $this->values[$property])) {
                 if (!$this->data_handler) {
                     throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
                 }
-                return $this->translation[$this->language][$this->values[$property]];
+                return $this->translations[$this->locale][$this->values[$property]];
             }
             
             return $this->values[$property];
@@ -545,6 +550,20 @@ class Play extends GameTerms implements Translatable
     }
     
     /**
+     * Magic method for public reading object properties from $this->values array.
+     *
+     * @return  mixed
+     */
+    public function __get(string $name)
+    {
+        if (!in_array($name, $this->values)) {
+            throw new Exception("Unknown property \"" . $name . "\"");
+        }
+        
+        return $this->values[$name];
+    }
+    
+    /**
      * Exports all non-null instance variables into array. This array can be user
      * in class constructor to restore object on property list.
      *
@@ -552,6 +571,11 @@ class Play extends GameTerms implements Translatable
      */
     public function export(): array
     {
-        return $this->values;
+        $export = $this->values;
+        $export["language"] = $this->language;
+        if (isset($this->locale)) {
+            $export["locale"] = $this->locale;
+        }
+        return $export;
     }
 }

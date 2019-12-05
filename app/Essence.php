@@ -3,7 +3,6 @@
 namespace Robin;
 
 use \Exception;
-use \Robin\Exceptions\ParsingException;
 use \Robin\Interfaces\Translatable;
 use \Robin\Language;
 use \Robin\Logger;
@@ -18,14 +17,16 @@ use \Robin\Inflector;
 class Essence implements Translatable
 {
     use Logger;
-    use Language;
-
+    
     private $attributes = [];
     
     protected $id;    
     protected $values;
     protected $category;
-    protected static $default_language = "en";
+    protected $data_handler;
+    protected $locale;
+    protected $language;
+    protected static $default_language = "en_US";
     
     /**
      * Class constructor.
@@ -40,6 +41,7 @@ class Essence implements Translatable
         
         $this->category = $category;
         $this->language = self::$default_language;
+        $this->setLocale(self::$default_language);
     }
     
     /**
@@ -48,30 +50,53 @@ class Essence implements Translatable
      * If no values of default language were imported, reset the language to actual.
      *
      * @param   array   $values     Array from Essence::export() or associative array
-     *                              with values, grouped by language.
+     *                              with values, grouped by locale.
      * @return  bool                Returns true if values were successfully imported
      *                              and false if not.
      */
     protected function import(array $import): bool
     {
-        $imported_languages_list = [ ];
-        foreach ($import as $language => $values) {
+        $language = null;
+        if (array_key_exists("language", $import) && !is_array($import["language"]) && strlen($import["language"]) > 0) {
+            $language = $import["language"];
+            unset($import["language"]);
+        }
+        
+        $locale = null;
+        if (array_key_exists("locale", $import) && !is_array($import["locale"]) && strlen($import["locale"]) > 0) {
+            $locale = $import["locale"];
+            unset($import["locale"]);
+        }
+        
+        if (array_key_exists("id", $import) && !is_array($import["id"]) && strlen($import["id"]) > 0) {
+            $this->id = $import["id"];
+            unset($import["id"]);
+        }
+        
+        $imported_locales_list = [ ];
+        foreach ($import as $locale => $values) {
             if (!is_array($values)) {
                 continue;
             }
-            if ($this->setValues($values, $language)) {
-                $imported_languages_list[] = $language;
+            if ($this->setValues($values, $locale)) {
+                $imported_locales_list[] = $locale;
             }
         }
         
-        if (count($imported_languages_list) == 0) {
+        if (count($imported_locales_list) == 0) {
             return false;
         }
         
-        $imported_language = reset($imported_languages_list);
-        if (!array_key_exists($this->language, $this->values) && $imported_language != $this->language) {
-            $this->language = $imported_language;
+        if ($language == null || !array_key_exists($language, $this->values)) {
+            $language = reset($imported_locales_list);
         }
+        
+        if ($locale == null || !array_key_exists($locale, $this->values)) {
+            $locale = $language;
+        }
+        
+        $this->language = $language;
+        $this->locale = $locale;
         
         return true;
     }
@@ -170,7 +195,7 @@ class Essence implements Translatable
      *                                      default is used.
      * @return  void
      */
-    private function setValue(string $attribute_name, string $value, string $language = ""): void
+    private function setValue(string $attribute_name, string $value, string $locale = ""): void
     {
         $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
         if (strlen($attribute_name) == 0) {
@@ -181,11 +206,11 @@ class Essence implements Translatable
             return;
         }
         
-        if (strlen(trim($language)) == 0) {
-            $language = $this->language;
+        if (strlen(trim($locale)) == 0) {
+            $locale = $this->locale;
         }
         
-        $this->values[$language][$attribute_name] = $value;
+        $this->values[$locale][$attribute_name] = $value;
     }
     
     /**
@@ -198,7 +223,7 @@ class Essence implements Translatable
      *                                      default is used.
      * @return  string                      Value or null
      */
-    private function getValue(string $attribute_name, string $language = ""): ?string
+    private function getValue(string $attribute_name, string $locale = ""): ?string
     {
         $attribute_name = Inflector::simplify(Inflector::camelCaseToUnderscore($attribute_name));
         if (strlen($attribute_name) == 0) {
@@ -209,12 +234,12 @@ class Essence implements Translatable
             return null;
         }
         
-        if (strlen(trim($language)) == 0) {
-            $language = $this->language;
+        if (strlen(trim($locale)) == 0) {
+            $locale = $this->locale;
         }
         
-        if (array_key_exists($language, $this->values) && array_key_exists($attribute_name, $this->values[$language])) {
-            return $this->values[$language][$attribute_name];
+        if (array_key_exists($locale, $this->values) && array_key_exists($attribute_name, $this->values[$locale])) {
+            return $this->values[$locale][$attribute_name];
         } else {
             return null;
         }
@@ -226,22 +251,22 @@ class Essence implements Translatable
      * @param   array   $values     Associative array with values, where key should
      *                              be equal to attribute name (attributes must be 
      *                              predefined with Essence::setAttributes()).
-     * @param   string  $language   (optional) Language of the values. If not
-     *                              set, active language is used.
+     * @param   string  $locale     (optional) Locale of the values. If not set,
+     *                              active locale is used.
      * @return  bool                Returns true if values were set and false if no
      *                              values were set.
      */
-    public function setValues(array $values, string $language = ""): bool
+    public function setValues(array $values, string $locale = ""): bool
     {
-        if (strlen($language) == 0) {
-            $language = $this->language;
+        if (strlen($locale) == 0) {
+            $locale = $this->locale;
         }
         
         $count_set_values = 0;
         foreach ($values as $attrubute => $value) {
             $attribute = Inflector::simplify(Inflector::camelCaseToUnderscore($attrubute));
             if (in_array($attrubute, $this->getAttributes()) && (is_string($value) || is_numeric($value))) {
-                $this->values[$language][$attrubute] = $value;
+                $this->values[$locale][$attrubute] = $value;
                 $count_set_values++;
             }
         }
@@ -252,19 +277,19 @@ class Essence implements Translatable
     /**
      * Returns all values of Essence.
      *
-     * @param   string  $language   (optional) Language of the values. If not
-     *                              set, active language is used.
+     * @param   string  $locale     (optional) Localization of the values. If not
+     *                              set, active locale is used.
      * @return  array               List of values in associative array of null if
      *                              instance doesn't have values of the defined language.
      */
-    public function getValues(string $language = ""): ?array
+    public function getValues(string $locale = ""): ?array
     {
-        if (strlen($language) == 0) {
-            $language = $this->language;
+        if (strlen($locale) == 0) {
+            $locale = $this->locale;
         }
         
-        if (array_key_exists($language, $this->values)) {
-            return $this->values[$language];
+        if (array_key_exists($locale, $this->values)) {
+            return $this->values[$locale];
         } else {
             return null;
         }
@@ -318,8 +343,7 @@ class Essence implements Translatable
     }
     
     /**
-     * Magic method for attribute getting. Allows to get attributes by direct names
-     * like $this->first_name, that aliases to getValue("first_name");
+     * Magic method for attribute getting in source version without localization
      *
      * @return  void 
      */
@@ -329,7 +353,7 @@ class Essence implements Translatable
             throw new Exception("Cannot read undefined attribute \"" . $name . "\"");
         }
         
-        return $this->getValue($name);
+        return $this->getValue($name, $this->language);
     }
     
     /**
@@ -344,9 +368,9 @@ class Essence implements Translatable
             throw new Exception("Cannot set undefined attribute \"" . $name . "\"");
         }
         
-        return $this->setValue($name, $value);
+        return $this->setValue($name, $value, $this->language);
     }
-
+    
     /**
      * Returns all values of the Essence
      *
@@ -354,7 +378,167 @@ class Essence implements Translatable
      */ 
     public function export()
     {
-        return $this->values;
+        $export = $this->values;
+        $export["language"] = $this->language;
+        if ($this->getId()) {
+            $export["id"] = $this->getId();
+        }
+        if (isset($this->locale)) {
+            $export["locale"] = $this->locale;
+        }
+        return;
+    }
+    
+    /**
+     * Sets locale of the object.
+     *
+     * @param   string  $locale                 Locale of the name variables, e.g. "en_US"
+     * @paeam   bool    $use_exising_values     Set to true, if 
+     *
+     * @return  void         
+     */
+    public function setLocale(string $locale, bool $use_existing_values = false): void
+    {
+        if (strlen(trim($locale)) == 0) {
+            return;
+        }
+        
+        if ($this->locale == $locale) {
+            return;
+        }
+        
+        if ($use_existing_values == true) {
+            foreach ($this->values[$this->locale] as $attribute=>$value) {
+                if (!$this->isTranslated($locale, $attribute)) {
+                    $this->values[$locale][$attribute] = $value;
+                }
+            }
+        }
+        
+        $this->locale = $locale;
+    }
+    
+    /**
+     * Returns current locale of the essence.
+     *
+     * @return  string     Locale value
+     */
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+    
+    /**
+     * Set hadler for saving and restoring data of the Essence
+     *
+     * @param   Keeper  $data_handler   Keeper object for storing data
+     *
+     * @return  void         
+     */
+    public function setDataHandler(Keeper $data_handler): void
+    {
+        $this->data_handler = $data_handler;
+    }
+
+    /**
+     * Checks if essence has values in defined locale.
+     *
+     * @param   string  $locale     Locale name to ve checked, e.g. "en_US". Case matters
+     * @param   string  $attrubute  (optional) Name of the attribute to be checked.
+     *                              If is set, then method checks existance of
+     *                              attribute, not just locale.
+     * @return  bool                True if translation exists, False if not.
+     */
+    public function isTranslated($locale, string $attribute = null): bool
+    {
+        if (strlen(trim($locale)) == 0) {
+            return false;
+        }
+        
+        if (array_key_exists($locale, $this->values) && count($this->values[$locale]) > 0) {
+            
+            // Checking if second argument of method is set. If not, return true.
+            if ($attribute == null) {
+                return true;
+            }
+            
+            if (array_key_exists($attribute, $this->values[$locale])) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Saves all values to external data source
+     *
+     * @return  bool    True if saving was successfull, false if not
+     */
+    public function save(): bool
+    {
+        if (!$this->data_handler) {
+            throw new Exception("Please set handler with Essence::setDataHandler() method to save data");
+        }
+        
+        if (strlen($this->id) == 0) {
+            throw new Exception(
+                "Please set id with Essence::setId() method for ".
+                $this->category .
+                " instance to save data"
+            );
+        }
+        
+        $object_id = $this->category . "/" . $this->id;
+        
+        return $this->data_handler->save($object_id, $this->values);
+    }
+    
+    /**
+     * Restores all values from external data source
+     *
+     * @return  bool    True if restoring was successfull, false if not
+     */
+    public function read(): bool
+    {
+        if (!$this->data_handler) {
+            throw new Exception("Please set handler with Essence::setDataHandler() method to read data");
+        }
+        
+        if (strlen($this->id) == 0) {
+            throw new Exception(
+                "Please set id with Essence::setId() method for ".
+                $this->category .
+                " instance to read data"
+            );
+        }
+        
+        $object_id = $this->category . "/" . $this->id;
+        $values = $this->data_handler->read($object_id);
+        
+        if (is_array($values)) {
+            $count_values = 0;
+            foreach ($values as $locale => $attrubutes) {
+                if (is_array($attrubutes)) {
+                    $values_array = [ ];
+                    foreach ($attrubutes as $attrubute => $value) {
+                        if (in_array($attrubute, $this->getAttributes())) {
+                            $values_array[$attrubute] = $value;
+                        }
+                    }
+                    if (count($values_array)) {
+                        $this->values[$locale] = $values_array;
+                        $count_values++;
+                    }
+                }
+            }
+            
+            if ($count_values) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
 }

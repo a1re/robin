@@ -4,9 +4,13 @@ namespace Robin\ESPN;
 
 use \Exception;
 use \Robin\Logger;
+use \Robin\Keeper;
 use \Robin\FileHandler;
 use \Robin\Team;
 use \Robin\Player;
+use \Robin\Play;
+use \Robin\Drive;
+use \Robin\GameTerms;
 use \Robin\ESPN\Decompose;
 
 class Parser
@@ -27,6 +31,16 @@ class Parser
      */
     public function __construct(string $url, string $language)
     {
+        $this->keeper = new Keeper(new FileHandler("data"));
+        
+        if (strlen($url) == 0) {
+            throw new Exception("URL of the page cannot be empty");
+        }
+        
+        if (strlen($language) == 0) {
+            throw new Exception("Language of the page cannot be empty");
+        }
+        
         require_once FileHandler::getRoot() . "/app/simplehtmldom_1_9/simple_html_dom.php";
         
         // Checking if we have SimpleHTMLDOM loaded
@@ -37,12 +51,12 @@ class Parser
         $this->html = file_get_html($url);
         
         if (!$this->html || !in_array(get_class($this->html), [ "simple_html_dom", "simple_html_dom_node"])) {
-            throw new ParsingException("HTML DOM not received");
+            throw new Exception("HTML DOM not received");
         }
         $this->source_language = $language;
         $this->setLanguage($language);
-        
         Team::setDefaultLanguage($language);
+        Player::setDefaultLanguage($language);
     }
     
     
@@ -54,6 +68,7 @@ class Parser
     public function setLanguage(string $language): void
     {
         $this->language = $language;
+        setlocale(LC_TIME, $language);
     }
     
     /**
@@ -118,6 +133,12 @@ class Parser
             }
         }
         
+        if ($this->language != $this->source_language) {
+            $team->setDataHandler($this->keeper);
+            $team->read();
+            $team->setLanguage($this->language, true);
+        }
+        
         return $team;
     }
     
@@ -152,11 +173,10 @@ class Parser
     /**
      * Parsing score by quarters
      *
-     * @return  object   Object with home and away values, both of them are arrays
-     *                   with [0] for total score, 1,2,3,4 for each quarter and 5
-     *                   for overtime
+     * @return  array    Array with home and away subarrays with [0] for total
+     *                   score, 1,2,3,4 for each quarter and 5 for overtime
      */
-    public function getScore(): ?\stdClass
+    public function getScore(): ?array
     {
         $score_row = $this->html->find("table#linescore tbody tr");
         
@@ -182,7 +202,7 @@ class Parser
         }
         
         if (count($result) > 0) {
-            return (object) $result;
+            return $result;
         } else {
             return null;
         }
@@ -265,4 +285,184 @@ class Parser
     public function getAwayRushingLeader(): Player   { return $this->getLeader("rushing", "away");   }
     public function getAwayReceivingLeader(): Player { return $this->getLeader("receiving", "away"); }
     
+    /**
+     * Parsing scoring summary section and getting array of instances of Drive
+     *
+     * @return  array       Array of Drives objects
+     */
+    public function getScoringDrives(): array
+    {
+        $scoring_summary = $this->html->find("div[data-module=scoringSummary] div.scoring-summary > table tbody",0);
+        
+        if ($scoring_summary == null) {
+            throw new Exception("No scoring summary block was found");
+        }
+        
+        $scoring_summary = $scoring_summary->find("tr");
+        $current_quarter = GameTerms::Q1;
+        $current_home_score = 0;
+        $current_away_score = 0;
+        $possessing_team = "";
+        $defending_team = "";
+        
+        $events = [ ];
+        
+        foreach ($scoring_summary as $e) {
+            if (!is_object($e)) {
+                continue;
+            }
+            
+            // If current row has "highlight" class, it's identifier of the quarter
+            if ($e->getAttribute("class") == "highlight" && $q = $e->find("th.quarter", 0)) {
+                $current_quarter = $this->getQuarterByName(trim($q->innertext));
+                continue; // We skip to next iteration as here will be no score details
+            }
+            
+            $points_scored = 0;
+            $new_home_score = $e->find("td.away-score", 0) ? $e->find("td.away-score", 0)->innertext : 0;
+            $new_away_score = $e->find("td.home-score", 0) ? $e->find("td.home-score", 0)->innertext : 0;
+            
+            $this->setPossessionValues($possessing_team, $defending_team, $points_scored, [
+                "current_home_score" => $current_home_score,
+                "current_away_score" => $current_away_score,
+                "new_home_score" => $new_home_score,
+                "new_away_score" => $new_away_score,
+                "home_team" => $this->getHomeTeam()->getId(),
+                "away_team" => $this->getAwayTeam()->getId()
+            ]);
+            
+            $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
+            $scoring_description = $scoring_description ? $scoring_description->innertext : '';
+            
+            $drive = new Drive($possessing_team, $defending_team);
+            $drive->setQuarter($current_quarter);
+            $drive->setScore($new_home_score, $new_away_score);
+            $drive->setResult(true);
+            Decompose::setPossessingTeam($possessing_team);
+            Decompose::setDefendingTeam($defending_team);
+            
+            if (in_array($points_scored, [6, 7, 8])) {
+                if ($extra_point = Decompose::XP($scoring_description)) {
+                    $scoring_description = trim(str_replace([$extra_point->getOrigin(),"(",")"], "", $scoring_description));
+                }
+                $play = Decompose::TD($scoring_description);
+            } elseif ($points_scored == 3) {
+                $play = Decompose::FG($scoring_description);
+            } else {
+                // It's definetely not a touchdown or field goal. We need to parse additional description
+                $score_type = $e->find("td.game-details div.table-row .score-type",0);
+                
+                if ($score_type === null) {
+                    continue; // no description of two points, quite the iteration
+                }
+                
+                if ($score_type->innertext == "SF") {
+                    $play = Decompose::SF($scoring_description);
+                } elseif ($score_type->innertext == "D2P") {
+                    $play = Decompose::D2P($scoring_description);
+                } elseif (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
+                    $play = Decompose::XP($scoring_description);                        
+                } else {
+                    continue;
+                }
+            }
+            
+            if (isset($play)) {
+                $play->setQuarter($current_quarter);
+                $drive->addPlay($play);
+            }
+            
+            if (isset($extra_point)) {
+                $extra_point->setQuarter($current_quarter);
+                $drive->addPlay($extra_point);
+            }
+            
+            $events[] = $drive;
+            
+            $current_away_score = $new_away_score;
+            $current_home_score = $new_home_score;
+            unset($play, $extra_point);
+        }
+        
+        return $events;
+    }
+
+    /**
+     * Calculates possessing+defending teams and ppints scoeed by values array
+     * [ (int) "current_home_score", (int) "current_away_score", (int) "new_home_score",
+     * (int) "new_away_score", (string) "home_team", (string) "away_team"]. Variables
+     * for possessing team, defending team and points scoread are passed as pointers.
+     * They receive new values and method returns void.
+     *
+     * @param   string  &$possessing_team      Variable for possessing team
+     * @param   string  &$defending_team       Variable for defending team
+     * @param   int     &$points_scored        Variable for points scored
+     * @param   array   $values                Aray of values for calculation
+     * @return  void
+     */
+    private function setPossessionValues(string &$pt, string &$dt, int &$points, array $values): void
+    {
+        $keys = [ "current_home_score", "current_away_score", "new_home_score", "new_away_score" ];
+        
+        foreach ($keys as $key) {
+            if (isset($values[$key]) && is_numeric($values[$key])) {
+                ${$key} = $values[$key];
+            } else {
+                throw new Exception("Values array should contain numeric '" .$key . "' value");
+            }            
+        }
+        
+        if (strlen($values["home_team"]) > 0) {
+            $home_team = $values["home_team"];
+        } else {
+            throw new Exception("Home team value cannot be empty");            
+        }
+        
+        if (strlen($values["away_team"]) > 0) {
+            $away_team = $values["away_team"];
+        } else {
+            throw new Exception("Away team value cannot be empty");            
+        }
+        
+        $home_delta = $new_home_score-$current_home_score;
+        $away_delta = $new_away_score-$current_away_score;
+        
+        if ($away_delta > $home_delta) {
+            $pt = $away_team;
+            $dt = $home_team;
+            $points = $away_delta;
+        } else {
+            $pt = $home_team;
+            $dt = $away_team;
+            $points = $home_delta;
+        }
+    }
+    
+    /**
+     * Parses quarter header and returns one of Event constants, that
+     * could be used to identify the quarter;
+     *
+     * @return  string  quarter identifier equal to GameTerms::Q1/Q2/Q3/Q4/OT
+     */
+    private function getQuarterByName(string $name = null): string
+    {
+        // If name is empty, we keep it as first quarter
+        if (mb_strlen($name) == 0) {
+            return GameTerms::Q1;
+        }
+        
+        $quarter_header = explode(" ", $name);
+        
+        if (count($quarter_header) == 2 && mb_strtolower($quarter_header[1]) == "quarter") {
+            switch ($quarter_header[0]) {
+                case 'first':   return GameTerms::Q1;
+                case 'second':  return GameTerms::Q2;
+                case 'third':   return GameTerms::Q3;
+                case 'fourth':  return GameTerms::Q4;
+            }
+        }
+        
+        // if header is not empty and doesn't start with first, second, third or fourth, it's overtime
+        return GameTerms::OT;
+    }
 }

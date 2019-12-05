@@ -3,7 +3,6 @@
 namespace Robin;
 
 use \Exception;
-use \Robin\Exceptions\ParsingException;
 use \Robin\Logger;
 use \Robin\Essence;
 use \Robin\Inflector;
@@ -21,7 +20,7 @@ class Player extends Essence
     const TRANSLATION_ID = "stats"; // id for file with terms translation
     
     protected static $default_language;
-    private $translation = [];
+    private $translations = [];
     private $stats = [ "passing"      => [ "attempts" => null, "completions" => null,
                                            "yards" => null, "td" => null,
                                            "int" => null, "rating" => null ],
@@ -71,11 +70,10 @@ class Player extends Essence
         if (is_array($f_name) && count($f_name) > 0) {
             // Taking stats away from passed array and then import values
             // with Essence::import() method
-            if (is_array($f_name["stats"]) && count($f_name["stats"]) > 0) {
-                $stats = $f_name["stats"];
-            }
-            
-            if (isset($f_name["stats"])) {
+            if (array_key_exists("stats", $f_name)) {
+                if (is_array($f_name["stats"]) && count($f_name["stats"]) > 0) {
+                    $stats = $f_name["stats"];
+                }
                 unset($f_name["stats"]);
             }
             
@@ -91,14 +89,16 @@ class Player extends Essence
             $this->last_name = $l_name;
         }
         
-        $this->id = $this->getFullName();
+        if ($this->getId() == null) {
+            $this->id = trim($this->first_name . " " . $this->last_name);
+        }
     }
     
     /**
      * STATIC METHOD
-     * Sets the default language for all future instances of Essence.
+     * Sets the default language for all future instances of Player.
      *
-     * @param   string  $language   Default language, e.g. "en"
+     * @param   string  $language   Default language, e.g. "en_US"
      *
      * @return  void         
      */    
@@ -285,7 +285,7 @@ class Player extends Essence
     private function getStatString(int $number, string $name): string
     {
         // Check if translation is needed
-        if($this->language == self::$default_language) {
+        if($this->locale == $this->language) {
             return $number . " " . $name;
         }
         
@@ -295,20 +295,20 @@ class Player extends Essence
         }
         
         // Here and next conditional blocks: loading translation and check it existance
-        if (!is_array($this->translation) || count($this->translation) == 0) {
+        if (!is_array($this->translations) || count($this->translations) == 0) {
             $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
         }
         
-        if(!array_key_exists($this->language, $this->translation)) {
+        if(!array_key_exists($this->language, $this->translations)) {
             return $number . " " . $name;
         }
         
-        if (!array_key_exists($name, $this->translation[$this->language])) {
+        if (!array_key_exists($name, $this->translations[$this->locale])) {
             return $number . " " . $name;
         }
         
         // Run through rules and return accordance
-        $rules_source = explode(",", $this->translation[$this->language][$name]);
+        $rules_source = explode(",", $this->translations[$this->locale][$name]);
         $rules = [ ];
         foreach ($rules_source as $regulation) {
             $components = explode(" ", trim($regulation));

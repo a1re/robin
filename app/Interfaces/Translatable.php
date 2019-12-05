@@ -4,9 +4,9 @@ namespace Robin\Interfaces;
 
 interface Translatable
 {
-    public function setLanguage(string $language): void;
-    public function getLanguage(): string;
-    public function isTranslated($language): bool;
+    public function setLocale(string $locale): void;
+    public function getLocale(): string;
+    public function isTranslated($locale): bool;
     
     public function setDataHandler(\Robin\Keeper $data_handler): void;
 }
