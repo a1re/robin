@@ -46,7 +46,7 @@ class Page
             $locale = $language;
         }
         
-        $this->engine = new $engine_class($url, $language, $language);
+        $this->engine = new $engine_class($url, $language, $locale);
     }
     
     /**

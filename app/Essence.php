@@ -386,7 +386,7 @@ class Essence implements Translatable
         if (isset($this->locale)) {
             $export["locale"] = $this->locale;
         }
-        return;
+        return $export;
     }
     
     /**
