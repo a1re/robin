@@ -30,18 +30,19 @@ class Gamecast
      * Class constructor
      *
      * @param   string  $url            URL of the page to get info
-     * @param   string  $language       Language of the page
+     * @param   string  $language       Source language of the page
+     * @param   string  $locale         (optional) Locale of the parsed data
      */
-    public function __construct($url, string $source_language, string $output_language = "")
+    public function __construct($url, string $language, string $locale = "")
     {
         if (is_array($url)) {
             $this->import($url);
             return;
         }
         
-        $parser = new Parser($url, $source_language);
-        if(strlen($output_language) > 0 && $output_language != $source_language) {
-            $parser->setLanguage($output_language);
+        $parser = new Parser($url, $language);
+        if(strlen($locale) > 0 && $locale != $language) {
+            $parser->setLocale($locale);
         }
         
         $this->schedule_time = $parser->getScheduleTime(self::TIMEZONE);
@@ -51,15 +52,14 @@ class Gamecast
             $team_name = $team . "_team";
             $method_name = "get" . ucfirst($team) . "Team";
             $this->$team_name = $parser->$method_name();
-            echo "<pre>";
-            var_dump($this->$team_name->getFullName());
-            echo "</pre>";
-//            $this->$team_name->setId($this->$team_name->getFullName());
+            $team_id = trim($this->$team_name->full_name);
+            $this->$team_name->setId($team_id);
             foreach (self::LEADERS_LIST as $leader) {
                 $leader_name = $team . "_" . $leader;
                 $method_name = "get" . ucfirst(Inflector::underscoreToCamelCase($leader_name));
                 $this->$leader_name = $parser->$method_name();
-                $this->$leader_name->setId($this->$team_name->getFullName() . "/" . $this->$leader_name->getFullName());
+                $leader_id = $this->$team_name->getId() . "/" . $this->$leader_name->first_name . " " . $this->$leader_name->last_name;
+                $this->$leader_name->setId($leader_id);
             }
         }
         

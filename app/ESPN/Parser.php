@@ -17,8 +17,8 @@ class Parser
 {
     use Logger;
     
-    private $source_language;
     private $language;
+    private $locale;
     
     private $home_team;
     private $away_team;
@@ -53,22 +53,22 @@ class Parser
         if (!$this->html || !in_array(get_class($this->html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new Exception("HTML DOM not received");
         }
-        $this->source_language = $language;
-        $this->setLanguage($language);
+        $this->language = $language;
+        $this->setLocale($language);
         Team::setDefaultLanguage($language);
         Player::setDefaultLanguage($language);
     }
     
     
     /**
-     * Sets active language of the info to be parsed from the page
+     * Sets locale of the info parsed from the page
      *
-     * @param   string  $language        Language name
+     * @param   string  $locale        Locale name, e.g. "en_US"
      */
-    public function setLanguage(string $language): void
+    public function setLocale(string $locale): void
     {
-        $this->language = $language;
-        setlocale(LC_TIME, $language);
+        $this->locale = $locale;
+        setlocale(LC_TIME, $locale);
     }
     
     /**
@@ -133,10 +133,10 @@ class Parser
             }
         }
         
-        if ($this->language != $this->source_language) {
+        if ($this->locale != $this->language) {
             $team->setDataHandler($this->keeper);
             $team->read();
-            $team->setLanguage($this->language, true);
+            $team->setLocale($this->locale, true);
         }
         
         return $team;
