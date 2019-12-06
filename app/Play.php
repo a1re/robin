@@ -55,10 +55,10 @@ class Play extends GameTerms implements Translatable
      * @param   string  $play_type          Type of play, must be equal to one of preset play types from
      *                                      Play::$offensive_play_types, Play::$defensive_play_types
      *                                      and Play::$special_play_types
-     * @param   string  $possessing_team    Id of the team that has posession on the beginning of the play
-     * @param   string  $defending_team     Id of the team that acts as defening on the beginning of the play
+     * @param   Team    $possessing_team    Team (as object) that has posession on the beginning of the play
+     * @param   Team    $defending_team     Team (as object) that acts as defening on the beginning of the play
      */
-    public function __construct($play_type, string $possessing_team = "", string $defending_team = "")
+    public function __construct($play_type, $possessing_team = null, $defending_team = null)
     {
         $this->language = self::$default_language;
         $this->locale = self::$default_language;
@@ -71,7 +71,7 @@ class Play extends GameTerms implements Translatable
                 unset($import["language"]);
             }
             
-            if (array_key_exists("play_type", $import)) {
+            if (array_key_exists("locale", $import)) {
                 $this->locale = $import["locale"];
                 unset($import["locale"]);
             }
@@ -81,33 +81,30 @@ class Play extends GameTerms implements Translatable
                 unset($import["play_type"]);
             }
             
-            if (array_key_exists("possessing_team", $import)) {
-                $possessing_team = $import["possessing_team"];
+            if (array_key_exists("possessing_team", $import) && is_array($import["possessing_team"])) {
+                $possessing_team = new Team($import["possessing_team"]);
                 unset($import["possessing_team"]);
             }
             
-            if (array_key_exists("defending_team", $import)) {
-                $defending_team = $import["defending_team"];
+            if (array_key_exists("defending_team", $import) && is_array($import["defending_team"])) {
+                $defending_team = new Team($import["defending_team"]);
                 unset($import["defending_team"]);
             }   
         } else if (!is_string($play_type)) {
             throw new Exception("Play type must be a valid non-empty string");
         }
-            
-        $play_type = trim($play_type);
-        $possessing_team = trim($possessing_team);
-        $defending_team = trim($defending_team);
-            
+
+        $play_type = trim($play_type);            
         if (strlen($play_type) == 0) {
             throw new Exception("Play type cannot be empty");
         }
             
-        if (strlen($possessing_team) == 0) {
-            throw new Exception("Possessing team cannot be empty");
+        if (!is_a($possessing_team, '\Robin\Team')) {
+            throw new Exception("Possessing team must be a valid Team object");
         }
             
-        if (strlen($defending_team) == 0) {
-            throw new Exception("Defending team cannot be empty");
+        if (!is_a($defending_team, '\Robin\Team')) {
+            throw new Exception("Defending team must be a valid Team object");
         }
             
         if (in_array($play_type, self::OFFENSIVE_PLAY_TYPES)) {
@@ -126,20 +123,8 @@ class Play extends GameTerms implements Translatable
         $this->values["possessing_team"] = $possessing_team;
         $this->values["defending_team"] = $defending_team;
         
-        if (isset($import) && count($import) > 0) {
-            foreach ($import as $name=>$value) {
-                if ($value === null) {
-                    continue;
-                }
-                
-                $method_name = Inflector::underscoreToCamelCase("set_" . $name);
-                
-                if (method_exists($this, $method_name)) {
-                    $this->{$method_name}($value);
-                } else if (array_key_exists($name, $this->values)){
-                    $this->values[$name] = $value;
-                }
-            }
+        if (isset($import)) {
+            $this->import($import);
         }
     }
     
@@ -163,17 +148,17 @@ class Play extends GameTerms implements Translatable
     /**
      * Sets active locale of play.
      *
-     * @param   string  $locale                 Output locale of the variables, e.g. "en_US"
-     * @paeam   bool    $use_exising_values     Set to true, if 
-     *
-     * @return  void
+     * @param   string  $locale         Output locale of the variables, e.g. "en_US"
+     * @return  bool                    True if locale was set, false if not
      */
-    public function setLocale(string $locale, bool $use_existing_values = false): void
+    public function setLocale(string $locale): bool
     {
         if (strlen(trim($locale)) == 0) {
             throw new Exception("Locale of Play cannot be empty");
         }
+        $this->translations = $this->data_handler->read(self::TRANSLATION_ID);
         $this->locale = $locale;
+        return true;
     }
     
     /**
@@ -228,7 +213,6 @@ class Play extends GameTerms implements Translatable
     public function setDataHandler(Keeper $data_handler): void
     {
         $this->data_handler = $data_handler;
-        $this->translations = $this->data_handler->read(self::TRANSLATION_ID);
     }
     
     /**
@@ -255,20 +239,20 @@ class Play extends GameTerms implements Translatable
     /**
      * Sets defender ending the offensive play
      *
-     * @param   mixed  $defenders     Name of the defender (if one) or array with
-     *                                names (if mamny)
+     * @param   mixed  $defenders     Player object of the defender (if one) or 
+     *                                array with Player objects names (if many)
      */    
     public function setDefenders($defenders): void
     {
         if (is_array($defenders) && count($defenders) > 0) {
             foreach ($defenders as $defender) {
-                if (is_string($defender) && !in_array($defender, $this->values["defenders"])) {
+                if (is_a($defender, '\Robin\Player') && !in_array($defender, $this->values["defenders"])) {
                     $this->values["defenders"][] = $defender;
                 }
             }
         }
         
-        if (is_string($defenders)) {
+        if (is_a($defenders, '\Robin\Player')) {
             if (!in_array($defenders, $this->values["defenders"])) {
                 $this->values["defenders"][] = $defenders;
             }
@@ -311,30 +295,20 @@ class Play extends GameTerms implements Translatable
     /**
      * Sets author of the play
      *
-     * @param   string     $author   Id (Name) of the player
+     * @param   Player     $author   Player object of the author
      */
-    public function setAuthor(string $author): void
+    public function setAuthor(Player $author): void
     {
-        $author = trim($author);
-        if (strlen($author) == 0) {
-            throw new Exception("Author cannot be empty");
-        }
-        
         $this->values["author"] = $author;
     }
     
     /**
      * Sets passer if it was an offensive passing play
      *
-     * @param   string     $passer   Id (Name) of the player
+     * @param   Player     $passer   Player object of the passer
      */
-    public function setPasser(string $passer): void
+    public function setPasser(Player $passer): void
     {
-        $passer = trim($passer);
-        if (strlen($passer) == 0) {
-            throw new Exception("Passer cannot be empty");
-        }
-        
         $this->values["passer"] = $passer;
     }
     
@@ -414,81 +388,62 @@ class Play extends GameTerms implements Translatable
      * shortcuts getPossessingTeam() and getDefendingTeam()
      *
      * @param   string      $team       Kind of the team ("possessing_team" or "defending_team")
-     * @param   boolean     $abbr       (optional) Set to true if team name should be
-     *                                  returned in Abbr.
      * @return  string                  Team name or null
      */
-    private function getTeam(string $team_type, $abbr = false) {
-        if (!(array_key_exists($team_type, $this->values) || strlen(trim($this->values[$team_type])) == 0)) {
+    private function getTeam(string $team_type): ?Team {
+        if (!(array_key_exists($team_type, $this->values))) {
             return null;
         }
         
-        if ($this->isTranslated($this->language)) {
+        if ($this->isTranslated($this->locale)) {
             if (!$this->data_handler) {
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
-            $team = new Team($this->values[$team_type]);
-            $team->setDataHandler($this->data_handler);
-            $team->setId($team->full_name);
-            $team->read();
-            if ($team->isTranslated("ru")) {
-                $team->setLanguage("ru", true);
-            }
-            if ($abbr) {
-                return $team->abbr;                
-            }
-            return $team->full_name;
+            $this->values[$team_type]->setDataHandler($this->data_handler);
+            $this->values[$team_type]->setLocale($this->locale);
+            return $this->values[$team_type];
         }
         
-        return $this->values[$team_type];       
+        return $this->values[$team_type];
     }
     
-    public function getPossessingTeam(bool $abbr = false): ?string { return $this->getTeam("possessing_team", $abbr); }
-    public function getDefendingTeam(bool $abbr = false): ?string { return $this->getTeam("defending_team", $abbr); }
+    public function getPossessingTeam(): ?Team { return $this->getTeam("possessing_team"); }
+    public function getDefendingTeam(): ?Team { return $this->getTeam("defending_team"); }
     
     /**
      * Service function to return player and translate name if needed. Publicly used via
      * shortcuts getAuthor() and getPasser()
      *
      * @param   string      $team       Kind of the player ("author" or "passer")
-     * @param   boolean     $include_position_and_number   (optional) Set to true if
-     *                                  player name should include position and number
      * @return  string                  Player name or null
      */
-    private function getPlayer(string $player_type, $include_position_and_number = false) {
+    private function getPlayer(string $player_type): ?Player {
         if (!(array_key_exists($player_type, $this->values) || strlen(trim($this->values[$player_type])) == 0)) {
             return null;
         }
         
-        if ($this->isTranslated($this->language)) {
+        if ($this->isTranslated($this->locale)) {
             if (!$this->data_handler) {
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
-            $player = new Player($this->values[$player_type]);
-            $player->setDataHandler($this->data_handler);
-            $player->setId($this->values["possessing_team"] . '/' . $player->getFullName());
-            $player->read();
-            if ($player->isTranslated("ru")) {
-                $player->setLanguage("ru", true);
-            }
-            return $player->getFullName($include_position_and_number);
+            $this->values[$player_type]->setDataHandler($this->data_handler);
+            $this->values[$player_type]->setLocale($this->locale);
+            return $this->values[$player_type];
         }
         
         return $this->values[$player_type];       
     }
     
-    public function getAuthor(bool $pos_and_no = false): ?string { return $this->getPlayer("author", $pos_and_no); }
-    public function getPasser(bool $pos_and_no = false): ?string { return $this->getPlayer("passer", $pos_and_no); }
+    public function getAuthor(bool $pos_and_no = false): ?Player { return $this->getPlayer("author"); }
+    public function getPasser(bool $pos_and_no = false): ?Player { return $this->getPlayer("passer"); }
 
     /**
      * Return list of defending players of the play and translate their names if needed.
      *
-     * @param   boolean     $include_position_and_number   (optional) Set to true if
-     *                                  player name should include position and number
      * @return  array                   List of defending players
      */    
-    public function getDefenders($include_position_and_number = false) {
-        if ($this->isTranslated($this->language)) {
+    public function getDefenders(): array {
+        if ($this->isTranslated($this->locale)) {
             if (!$this->data_handler) {
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
@@ -496,15 +451,10 @@ class Play extends GameTerms implements Translatable
             $defenders = [];
             
             foreach ($this->values["defenders"] as $defender) {
-                $player = new Player($defender);
-                $player->setDataHandler($this->data_handler);
-                $player->setId($this->values["defending_team"] . '/' . $player->getFullName());
-                $player->read();
-                if ($player->isTranslated("ru")) {
-                    $player->setLanguage("ru", true);
-                }
+                $defender->setDataHandler($this->data_handler);
+                $defender->setLocale($this->locale);
                 
-                $defenders[] = $player->getFullName($include_position_and_number);
+                $defenders[] = $defender;
             }
             
             return $defenders;
@@ -564,6 +514,47 @@ class Play extends GameTerms implements Translatable
     }
     
     /**
+     * Import values from array provided by Play::export();
+     *
+     * @param   array   $values   Import values
+     * @return  void
+     */
+    public function import(array $values): void
+    {
+        if (array_key_exists("author", $values) && is_array($values["author"])) {
+            $this->values["author"] = new Player($values["author"]);
+            unset($values["author"]);
+        }
+        
+        if (array_key_exists("passer", $values) && is_array($values["passer"])) {
+            $this->values["passer"] = new Player($values["passer"]);
+            unset($values["passer"]);
+        }
+        
+        if (array_key_exists("defenders", $values) && is_array($values["defenders"])) {
+            foreach ($values["defenders"] as $defender) {
+                if (is_array($defender) && count($defender) > 0) {
+                    $this->values["defenders"][] = new Player($defender);
+                }
+            }
+            unset($values["defenders"]);
+        }
+        
+        foreach ($values as $name=>$value) {
+            if ($value === null) {
+                continue;
+            }
+            
+            $method_name = Inflector::underscoreToCamelCase("set_" . $name);
+            if (method_exists($this, $method_name)) {
+                $this->{$method_name}($value);
+            } else if (array_key_exists($name, $this->values)) {
+                $this->values[$name] = $value;
+            }
+        }
+    }
+    
+    /**
      * Exports all non-null instance variables into array. This array can be user
      * in class constructor to restore object on property list.
      *
@@ -572,6 +563,17 @@ class Play extends GameTerms implements Translatable
     public function export(): array
     {
         $export = $this->values;
+        if ($export["author"] != null && is_a($export["author"], '\Robin\Player')) {
+            $export["author"] = $export["author"]->export();
+        }
+        if ($export["passer"] != null && is_a($export["passer"], '\Robin\Player')) {
+            $export["passer"] = $export["passer"]->export();
+        }
+        if (is_array($export["defenders"])) {
+            for ($i=0;$i<count($export["defenders"]);$i++) {
+                $export["defenders"][$i] = $export["defenders"]->export();
+            }
+        }
         $export["language"] = $this->language;
         if (isset($this->locale)) {
             $export["locale"] = $this->locale;

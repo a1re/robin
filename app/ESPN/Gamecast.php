@@ -253,7 +253,7 @@ class Gamecast
                 $play["quarter"] = $plays[$i]->getQuarter();
                 $play["scoring_method"] = $plays[$i]->getScoringMethod();
                 
-                $team = new Team($plays[$i]->getPossessingTeam());
+                $team = $plays[$i]->getPossessingTeam();
                 $play["team"] = [
                     "name" => $team->getShortName(),
                     "full_name" => $team->getFullName(),
@@ -261,7 +261,7 @@ class Gamecast
                     "id" => $team->getId()
                 ];
                 
-                $author = new Player($plays[$i]->getAuthor());
+                $author = $plays[$i]->getAuthor();
                 $play["author"] = [
                     "first_name" => $author->getFirstName(),
                     "last_name" => $author->getLastName(),
@@ -272,7 +272,7 @@ class Gamecast
                 $play["type"] = $plays[$i]->getPlayType();
                 
                 if ($plays[$i]->getPasser()) {
-                    $passer = new Player($plays[$i]->getPasser());
+                    $passer = $plays[$i]->getPasser();
                     $play["passer"] = [
                         "first_name" => $passer->getFirstName(),
                         "last_name" => $passer->getLastName(),
@@ -298,7 +298,7 @@ class Gamecast
                     if ($plays[$i+1]->scoring_method == GameTerms::XP) {
                         $play["extra"] = [ "result" => "+1"];
                         if ($plays[$i+1]->getAuthor()) {
-                            $extra_author = new Player($plays[$i+1]->getAuthor());
+                            $extra_author = $plays[$i+1]->getAuthor();
                             $play["extra"]["author"] = [
                                 "first_name" => $extra_author->getFirstName(),
                                 "last_name" => $extra_author->getLastName(),
@@ -312,7 +312,7 @@ class Gamecast
                     if ($plays[$i+1]->scoring_method == GameTerms::X2P) {
                         $play["extra"] = [ "result" => "+2"];
                         if ($plays[$i+1]->getAuthor()) {
-                            $extra_author = new Player($plays[$i+1]->getAuthor());
+                            $extra_author = $plays[$i+1]->getAuthor();
                             $play["extra"]["author"] = [
                                 "first_name" => $extra_author->getFirstName(),
                                 "last_name" => $extra_author->getLastName(),
@@ -322,7 +322,7 @@ class Gamecast
                         }
                         $play["extra"]["type"] = $plays[$i+1]->getPlayType();
                         if ($plays[$i+1]->getPasser()) {
-                            $extra_passer = new Player($plays[$i+1]->getPasser());
+                            $extra_passer = $plays[$i+1]->getPasser();
                             $play["extra"]["passer"] = [
                                 "first_name" => $extra_passer->getFirstName(),
                                 "last_name" => $extra_passer->getLastName(),

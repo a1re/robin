@@ -53,19 +53,19 @@ class Team extends Essence
         }
         
         // If both full and short names are empty, we throw exception
-        if (mb_strlen(trim($full_name)) == 0 && mb_strlen(trim($short_name)) == 0) {
+        if (strlen(trim($full_name)) == 0 && strlen(trim($short_name)) == 0) {
             throw new Exception("No name was provided");
         }
         
-        if (mb_strlen(trim($full_name)) == 0) {
+        if (strlen(trim($full_name)) == 0) {
             $full_name = $short_name;
         }
         
-        if (mb_strlen(trim($short_name)) == 0) {
+        if (strlen(trim($short_name)) == 0) {
             $short_name = self::makeShortName($full_name);
         }
         
-        if (mb_strlen(trim($abbr)) == 0) {
+        if (strlen(trim($abbr)) == 0) {
             $abbr = self::makeAbbr($short_name);
         }
         
@@ -101,7 +101,7 @@ class Team extends Essence
      */
     public static function makeShortName(string $full_name): string
     {
-        if (mb_strlen(trim($full_name)) == 0) {
+        if (strlen(trim($full_name)) == 0) {
             throw new Exception("No team name was provided");
         }
         
@@ -157,7 +157,7 @@ class Team extends Essence
      */
     public static function makeAbbr(string $name): string
     {
-        if (mb_strlen($name) == 0) {
+        if (strlen($name) == 0) {
             throw new Exception("No name was provided");
         }
         
@@ -165,7 +165,7 @@ class Team extends Essence
         
         // If name consists of one word, we just take 3 or 4 first letters of it
         if (count($name_parts) == 1) {
-            if (mb_strlen($name_parts[0]) <= 4) {
+            if (strlen($name_parts[0]) <= 4) {
                 return mb_strtoupper($name_parts[0]);
             }
             

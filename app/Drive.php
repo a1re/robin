@@ -41,12 +41,12 @@ class Drive extends GameTerms
      * and $defending_team or by passing array of variables exported by method 
      * Drive::export(), e.g.:new Drive($exported_values);
      *
-     * @param   string  $possessing_team    Id of the team that has posession on
-     *                                      the beginning of the drive
-     * @param   string  $defending_team     Id of the team that acts as defening 
+     * @param   Team    $possessing_team    Team (as object) that has posession
      *                                      on the beginning of the drive
+     * @param   Team    $defending_team     Team (as object) that acts as defening
+     *                                      on the beginning of the play
      */
-    public function __construct($possessing_team, string $defending_team = "")
+    public function __construct($possessing_team, $defending_team = null)
     {
         $this->language = self::$default_language;
         $this->locale = self::$default_language;
@@ -54,53 +54,36 @@ class Drive extends GameTerms
         if (is_array($possessing_team)) {
             $import = $possessing_team;
             
+            $import = $play_type;
+            
             if (array_key_exists("language", $import)) {
                 $this->language = $import["language"];
                 unset($import["language"]);
             }
             
-            if (array_key_exists("play_type", $import)) {
+            if (array_key_exists("locale", $import)) {
                 $this->locale = $import["locale"];
                 unset($import["locale"]);
             }
             
-            if (array_key_exists("possessing_team", $import)) {
-                $possessing_team = $import["possessing_team"];
+            if (array_key_exists("possessing_team", $import) && is_array($import["possessing_team"])) {
+                $possessing_team = new Team($import["possessing_team"]);
                 unset($import["possessing_team"]);
             }
             
-            if (array_key_exists("defending_team", $import)) {
-                $defending_team = $import["defending_team"];
+            if (array_key_exists("defending_team", $import) && is_array($import["defending_team"])) {
+                $defending_team = new Team($import["defending_team"]);
                 unset($import["defending_team"]);
-            }   
-        } else if (!is_string($possessing_team)) {
-            throw new Exception("Possessing team must be defined as ID of a valid non-empty string");
+            }
+        } else if (!is_a($possessing_team, '\Robin\Team')) {
+            throw new Exception("Possessing team must be valid Team object");
         }
         
         $this->setPossessingTeam($possessing_team);
         $this->setDefendingTeam($defending_team);
         
-        if (isset($import) && count($import) > 0) {
-            foreach ($import as $name=>$value) {
-                if ($value === null) {
-                    continue;
-                }
-                
-                if ($name == "plays" && is_array($value)) {
-                    foreach ($value as $play) {
-                        $this->addPlay(new Play($play));                        
-                    }
-                    continue;
-                }
-                
-                $method_name = Inflector::underscoreToCamelCase("set_" . $name);
-                
-                if (method_exists($this, $method_name)) {
-                    $this->{$method_name}($value);
-                } else if (array_key_exists($name, $this->values)){
-                    $this->values[$name] = $value;
-                }
-            }
+        if (isset($import)) {
+            $this->import($import);
         }
     }
     
@@ -124,16 +107,15 @@ class Drive extends GameTerms
     /**
      * Sets active language of drive.
      *
-     * @param   string  $locale               Locale of the name variables, e.g. "en_US"
-     * @paeam   bool    $use_exising_values   Set to true, if 
-     *
-     * @return  void         
+     * @param   string  $locale         Locale of the name variables, e.g. "en_US"
+     * @return  bool                    True if locale was set, false if not
      */
-    public function setLocale(string $locale, bool $use_existing_values = false): void
+    public function setLocale(string $locale, bool $use_existing_values = false): bool
     {
         if (strlen(trim($locale)) == 0) {
             throw new Exception("Locale of Drive cannot be empty");
         }
+        $this->translations = $this->data_handler->read(self::TRANSLATION_ID);
         if (is_array($this->values["plays"]) && count($this->values["plays"]) > 0) {
             foreach ($this->values["plays"] as $i=>$play) {
                 if (is_object($play)) {
@@ -146,6 +128,7 @@ class Drive extends GameTerms
             }
         }
         $this->locale = $locale;
+        return true;
     }
     
     /**
@@ -200,7 +183,6 @@ class Drive extends GameTerms
     public function setDataHandler(Keeper $data_handler): void
     {
         $this->data_handler = $data_handler;
-        $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
         if (is_array($this->values["plays"]) && count($this->values["plays"]) > 0) {
             foreach ($this->values["plays"] as $i=>$play) {
                 if (is_object($play)) {
@@ -278,28 +260,20 @@ class Drive extends GameTerms
     /**
      * Public method for setting possessing team of the drive
      *
-     * @param   string    $possessing_team   ID of the posessing team
+     * @param   Team    $possessing_team   Team object of the posessing team
      */
-    public function setPossessingTeam(string $possessing_team): void
+    public function setPossessingTeam(Team $possessing_team): void
     {
-        if (strlen(trim($possessing_team)) == 0) {
-            throw new Exception("Possessing team ID cannot be empty");
-        }
-        
         $this->values["possessing_team"] = $possessing_team;
     }
 
     /**
      * Public method for setting defending team of the drive
      *
-     * @param   string    $defending_team   ID of the posessing team
+     * @param   Team    $defending_team   Team object of the defending team
      */
-    public function setDefendingTeam(string $defending_team): void
+    public function setDefendingTeam(Team $defending_team): void
     {
-        if (strlen(trim($defending_team)) == 0) {
-            throw new Exception("Defending team ID cannot be empty");
-        }
-        
         $this->values["defending_team"] = $defending_team;
     }
     
@@ -373,37 +347,27 @@ class Drive extends GameTerms
      * shortcuts getPossessingTeam() and getDefendingTeam()
      *
      * @param   string      $team       Kind of the team ("possessing_team" or "defending_team")
-     * @param   boolean     $abbr       (optional) Set to true if team name should be
-     *                                  returned in Abbr.
      * @return  string                  Team name or null
      */
-    private function getTeam(string $team_type, $abbr = false) {
-        if (!(array_key_exists($team_type, $this->values) || strlen(trim($this->values[$team_type])) == 0)) {
+    private function getTeam(string $team_type): ?Team {
+        if (!(array_key_exists($team_type, $this->values))) {
             return null;
         }
         
-        if ($this->isTranslated($this->language)) {
+        if ($this->isTranslated($this->locale)) {
             if (!$this->data_handler) {
-                throw new Exception("Please set handler with Drive::setDataHandler() method to read translation data");
+                throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
-            $team = new Team($this->values[$team_type]);
-            $team->setDataHandler($this->data_handler);
-            $team->setId($team->full_name);
-            $team->read();
-            if ($team->isTranslated("ru")) {
-                $team->setLanguage("ru", true);
-            }
-            if ($abbr) {
-                return $team->abbr;                
-            }
-            return $team->full_name;
+            $this->values[$team_type]->setDataHandler($this->data_handler);
+            $this->values[$team_type]->setLocale($this->locale);
+            return $this->values[$team_type];
         }
         
-        return $this->values[$team_type];       
+        return $this->values[$team_type];
     }
     
-    public function getPossessingTeam(bool $abbr = false): ?string { return $this->getTeam("possessing_team", $abbr); }
-    public function getDefendingTeam(bool $abbr = false): ?string { return $this->getTeam("defending_team", $abbr); }
+    public function getPossessingTeam(): ?Team { return $this->getTeam("possessing_team"); }
+    public function getDefendingTeam(): ?Team { return $this->getTeam("defending_team"); }
     
     /**
      * Magic method for to acceess private properties. Properties are accessed
@@ -441,6 +405,27 @@ class Drive extends GameTerms
             throw new Exception("Call to undefined method " . $name . "() in Robin\Drive");
         }
     }
+    
+    /**
+     * Import values from array provided by Drive::export();
+     *
+     * @param   array   $values   Import values
+     * @return  void
+     */
+    public function import(array $values): void
+    {
+        foreach ($values as $name=>$value) {
+            if ($value === null) {
+                continue;
+            }
+            $method_name = Inflector::underscoreToCamelCase("set_" . $name);
+            if (method_exists($this, $method_name)) {
+                $this->{$method_name}($value);
+            } else if (array_key_exists($name, $this->values)) {
+                $this->values[$name] = $value;
+            }
+        }
+    }
 
     
     /**
@@ -454,12 +439,9 @@ class Drive extends GameTerms
         $export = $this->values;
         if (is_array($export["plays"]) && count($export["plays"]) > 0) {
             foreach ($export["plays"] as $i=>$play) {
-                if (is_object($play)) {
-                    $reflect = new \ReflectionClass($play);
-                    if ($reflect->getShortName() === 'Play') {
-                        $export["plays"][$i] = $play->export();
-                        continue;
-                    }
+                if (is_a($play, '\Robin\Play')) {
+                    $export["plays"][$i] = $play->export();
+                    continue;
                 }
                 unset ($export["plays"][$i]);
             }

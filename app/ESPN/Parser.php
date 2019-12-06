@@ -135,7 +135,6 @@ class Parser
         
         if ($this->locale != $this->language) {
             $team->setDataHandler($this->keeper);
-            $team->read();
             $team->setLocale($this->locale, true);
         }
         
@@ -302,8 +301,8 @@ class Parser
         $current_quarter = GameTerms::Q1;
         $current_home_score = 0;
         $current_away_score = 0;
-        $possessing_team = "";
-        $defending_team = "";
+        $possessing_team = null;
+        $defending_team = null;
         
         $events = [ ];
         
@@ -327,8 +326,8 @@ class Parser
                 "current_away_score" => $current_away_score,
                 "new_home_score" => $new_home_score,
                 "new_away_score" => $new_away_score,
-                "home_team" => $this->getHomeTeam()->getId(),
-                "away_team" => $this->getAwayTeam()->getId()
+                "home_team" => $this->getHomeTeam(),
+                "away_team" => $this->getAwayTeam()
             ]);
             
             $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
@@ -377,6 +376,10 @@ class Parser
                 $drive->addPlay($extra_point);
             }
             
+            if ($this->locale != $this->language) {
+//                $drive->setDataHandler($this->keeper);
+//                $drive->setLocale($this->locale);
+            }
             $events[] = $drive;
             
             $current_away_score = $new_away_score;
@@ -394,13 +397,13 @@ class Parser
      * for possessing team, defending team and points scoread are passed as pointers.
      * They receive new values and method returns void.
      *
-     * @param   string  &$possessing_team      Variable for possessing team
-     * @param   string  &$defending_team       Variable for defending team
+     * @param   mixed   &$possessing_team      Variable for possessing team
+     * @param   mixed   &$defending_team       Variable for defending team
      * @param   int     &$points_scored        Variable for points scored
      * @param   array   $values                Aray of values for calculation
      * @return  void
      */
-    private function setPossessionValues(string &$pt, string &$dt, int &$points, array $values): void
+    private function setPossessionValues(&$possessing_team, &$defending_team, int &$points, array $values): void
     {
         $keys = [ "current_home_score", "current_away_score", "new_home_score", "new_away_score" ];
         
@@ -412,28 +415,28 @@ class Parser
             }            
         }
         
-        if (strlen($values["home_team"]) > 0) {
+        if (is_a($values["home_team"], "\Robin\Team")) {
             $home_team = $values["home_team"];
         } else {
-            throw new Exception("Home team value cannot be empty");            
+            throw new Exception("Home team value must be a valid Team object");            
         }
         
-        if (strlen($values["away_team"]) > 0) {
+        if (is_a($values["away_team"], "\Robin\Team")) {
             $away_team = $values["away_team"];
         } else {
-            throw new Exception("Away team value cannot be empty");            
+            throw new Exception("Away team value must be a valid Team object");            
         }
         
         $home_delta = $new_home_score-$current_home_score;
         $away_delta = $new_away_score-$current_away_score;
         
         if ($away_delta > $home_delta) {
-            $pt = $away_team;
-            $dt = $home_team;
+            $possessing_team = $away_team;
+            $defending_team = $home_team;
             $points = $away_delta;
         } else {
-            $pt = $home_team;
-            $dt = $away_team;
+            $possessing_team = $home_team;
+            $defending_team = $away_team;
             $points = $home_delta;
         }
     }
