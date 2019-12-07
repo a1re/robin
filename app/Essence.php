@@ -238,7 +238,11 @@ class Essence implements Translatable
             $locale = $this->locale;
         }
         
-        if (array_key_exists($locale, $this->values) && array_key_exists($attribute_name, $this->values[$locale])) {
+        if (!array_key_exists($locale, $this->values)) {
+            $locale = $this->language;
+        }
+        
+        if (array_key_exists($attribute_name, $this->values[$locale])) {
             return $this->values[$locale][$attribute_name];
         } else {
             return null;

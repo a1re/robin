@@ -148,27 +148,35 @@ class Player extends Essence
     /**
      * Returns full name of the player in one string
      *
-     * @param   bool    $include_position_and_number    include into name position
-     *                                                  and number, e.g. "QB Tom Brady (#12)"
-     *                                                  instead of just "Tom Brady"
-     * @return  string  Full player name
+     * @param   array   $settings   Array with name modifying settings:
+     *                              "include_position_and_number" => True/False
+     *                              If true, returns name with position and number,
+     *                              "gentive" => True/False
+     *                              If true, returns name in genitive
+     * @return  string              Full player name
      */
-    public function getFullName(bool $include_position_and_number = false): string
+    public function getFullName(array $settings = []): string
     {
-        $name = "";
-        if ($include_position_and_number && mb_strlen($this->position) > 0) {
-            $name .= $this->position . " ";
+        $name = trim($this->getFirstName() . " " . $this->getLastName());
+            
+        if (array_key_exists("genitive", $settings) && $settings["genitive"] == true) {
+            $genitive_name = trim($this->getFirstNameGenitive() . " " . $this->getLastNameGenitive());
+            if (strlen($genitive_name) > 0) {
+                $name = $genitive_name;
+            }
+        }
+
+        if (array_key_exists("include_position_and_number", $settings) &&
+            $settings["include_position_and_number"] == true
+        ) {
+            if (strlen($this->position) > 0) {
+                $name = $this->position . " " . $name;
+            }
+            if (strlen($this->number) > 0) {
+                $name .= " (#" . $this->number . ")";
+            }
         }
         
-        if (mb_strlen($this->first_name)) {
-           $name .= $this->first_name . " "; 
-        }
-        
-        $name .= $this->last_name;
-        
-        if ($include_position_and_number && mb_strlen($this->number) > 0) {
-            $name .= " (#" . $this->number . ")";
-        }
         return $name;
     }
     
@@ -296,10 +304,10 @@ class Player extends Essence
         
         // Here and next conditional blocks: loading translation and check it existance
         if (!is_array($this->translations) || count($this->translations) == 0) {
-            $this->translation = $this->data_handler->read(self::TRANSLATION_ID);
+            $this->translations = $this->data_handler->read(self::TRANSLATION_ID);
         }
         
-        if(!array_key_exists($this->language, $this->translations)) {
+        if(!array_key_exists($this->locale, $this->translations)) {
             return $number . " " . $name;
         }
         
