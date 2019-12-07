@@ -19,7 +19,7 @@ class Parser
     
     private $language;
     private $locale;
-    
+    private $data_handler;
     private $home_team;
     private $away_team;
     
@@ -30,9 +30,7 @@ class Parser
      * @param   string  $language       Original language of the page
      */
     public function __construct(string $url, string $language)
-    {
-        $this->keeper = new Keeper(new FileHandler("data"));
-        
+    {        
         if (strlen($url) == 0) {
             throw new Exception("URL of the page cannot be empty");
         }
@@ -69,6 +67,19 @@ class Parser
     {
         $this->locale = $locale;
         setlocale(LC_TIME, $locale);
+    }
+
+    
+    /**
+     * Set hadler for reading data
+     *
+     * @param   Keeper  $data_handler   Keeper object for storing data
+     *
+     * @return  void         
+     */
+    public function setDataHandler(Keeper $data_handler): void
+    {
+        $this->data_handler = $data_handler;
     }
     
     /**
@@ -134,7 +145,7 @@ class Parser
         }
         
         if ($this->locale != $this->language) {
-            $team->setDataHandler($this->keeper);
+            $team->setDataHandler($this->data_handler);
             $team->setLocale($this->locale, true);
         }
         
@@ -214,7 +225,7 @@ class Parser
      * @param   string  $team       DOM dataset key in page source code for team type (usually "home" or "away")
      * @return  Player              Instance of Player class
      */
-    private function getLeader(string $category, string $team)
+    private function getLeader(string $category, string $team): Player
     {
         if ($team == "home") {
             $team_id = $this->getHomeTeam();
@@ -238,6 +249,11 @@ class Parser
         
         $player = new Player($player_name);
         $player->setId($team_id->full_name . '/' . $player_name);
+        
+        if ($this->locale != $this->language) {
+            $player->setDataHandler($this->data_handler);
+            $player->setLocale($this->locale, true);
+        }
         
         //Parsing player stats with DOM request with $category and $team markers
         $player_stat_query  = "div[data-module=teamLeaders] div[data-stat-key=";
@@ -377,8 +393,8 @@ class Parser
             }
             
             if ($this->locale != $this->language) {
-//                $drive->setDataHandler($this->keeper);
-//                $drive->setLocale($this->locale);
+                $drive->setDataHandler($this->data_handler);
+                $drive->setLocale($this->locale);
             }
             $events[] = $drive;
             
