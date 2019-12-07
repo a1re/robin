@@ -418,7 +418,7 @@ class Play extends GameTerms implements Translatable
      * @return  string                  Player name or null
      */
     private function getPlayer(string $player_type): ?Player {
-        if (!(array_key_exists($player_type, $this->values) || strlen(trim($this->values[$player_type])) == 0)) {
+        if (!(array_key_exists($player_type, $this->values) && is_a($this->values[$player_type], "\Robin\Player"))) {
             return null;
         }
         
