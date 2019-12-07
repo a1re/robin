@@ -78,7 +78,9 @@ class Player extends Essence
             }
             
             if ($this->import($f_name)) {
-                $this->stats = $stats;
+                if (isset($stats)) {
+                    $this->stats = $stats;
+                }
             } else {
                 throw new Exception("Import from array failed");
             }
@@ -414,7 +416,7 @@ class Player extends Essence
      */ 
     public function export(bool $include_stats = false): array
     {
-        $ret = $this->values;
+        $ret = parent::export();
         if ($include_stats) {
             $ret["stats"] = $this->stats;
         }

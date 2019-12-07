@@ -54,8 +54,6 @@ class Drive extends GameTerms
         if (is_array($possessing_team)) {
             $import = $possessing_team;
             
-            $import = $play_type;
-            
             if (array_key_exists("language", $import)) {
                 $this->language = $import["language"];
                 unset($import["language"]);
@@ -69,14 +67,22 @@ class Drive extends GameTerms
             if (array_key_exists("possessing_team", $import) && is_array($import["possessing_team"])) {
                 $possessing_team = new Team($import["possessing_team"]);
                 unset($import["possessing_team"]);
+            } else {
+                throw new Exception("Import array must contain valid possessing team values");
             }
             
             if (array_key_exists("defending_team", $import) && is_array($import["defending_team"])) {
                 $defending_team = new Team($import["defending_team"]);
                 unset($import["defending_team"]);
+            } else {
+                throw new Exception("Import array must contain valid possessing team values");
             }
-        } else if (!is_a($possessing_team, '\Robin\Team')) {
+        } elseif (!is_a($possessing_team, '\Robin\Team')) {
             throw new Exception("Possessing team must be valid Team object");
+        }
+        
+        if ($defending_team != null && !is_a($defending_team, '\Robin\Team')) {
+            throw new Exception("Defending team must be valid Team object");
         }
         
         $this->setPossessingTeam($possessing_team);
@@ -418,6 +424,18 @@ class Drive extends GameTerms
             if ($value === null) {
                 continue;
             }
+            
+            if ($name == "plays") {
+                if (is_array($value)) {
+                    foreach ($value as $import_play) {
+                        if (is_array($import_play)) {
+                            $this->values["plays"][] = new Play($import_play);
+                        }
+                    }
+                }
+                continue;
+            }
+            
             $method_name = Inflector::underscoreToCamelCase("set_" . $name);
             if (method_exists($this, $method_name)) {
                 $this->{$method_name}($value);
@@ -447,9 +465,11 @@ class Drive extends GameTerms
             }
         }
         $export["language"] = $this->language;
+        $export["possessing_team"] = $this->values["possessing_team"]->export();
+        $export["defending_team"] = $this->values["defending_team"]->export();
         if (isset($this->locale)) {
             $export["locale"] = $this->locale;
-        }
+        }                
         return $export;
     }
 }

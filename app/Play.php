@@ -76,9 +76,16 @@ class Play extends GameTerms implements Translatable
                 unset($import["locale"]);
             }
             
+            if (array_key_exists("translations", $import) && is_array($import["translations"])) {
+                $this->translations = $import["translations"];
+                unset($import["translations"]);
+            }
+            
             if (array_key_exists("play_type", $import)) {
                 $play_type = $import["play_type"];
                 unset($import["play_type"]);
+            } else {            
+                throw new Exception("Import array must contain play type value");
             }
             
             if (array_key_exists("possessing_team", $import) && is_array($import["possessing_team"])) {
@@ -90,7 +97,7 @@ class Play extends GameTerms implements Translatable
                 $defending_team = new Team($import["defending_team"]);
                 unset($import["defending_team"]);
             }   
-        } else if (!is_string($play_type)) {
+        } elseif (!is_string($play_type)) {
             throw new Exception("Play type must be a valid non-empty string");
         }
 
@@ -574,9 +581,14 @@ class Play extends GameTerms implements Translatable
                 $export["defenders"][$i] = $export["defenders"]->export();
             }
         }
+        $export["possessing_team"] = $this->values["possessing_team"]->export();
+        $export["defending_team"] = $this->values["defending_team"]->export();
         $export["language"] = $this->language;
         if (isset($this->locale)) {
             $export["locale"] = $this->locale;
+        }
+        if (count($this->translations) > 0) {
+            $export["translations"] = $this->translations;
         }
         return $export;
     }
