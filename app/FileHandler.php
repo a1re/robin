@@ -35,7 +35,7 @@ class FileHandler implements DataStorage
                 $dir = substr($dir, 0, -1);
             }
             
-            // Merging $dir with $root_dir to make full path&  If user defined $dir
+            // Merging $dir with $root_dir to make full path. If user defined $dir
             // with starting "/", we join it directly, otherwise add missing slash
             if (substr($dir, 0, 1) == "/") {
                 $root_dir = $root_dir . $dir;
