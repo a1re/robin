@@ -93,16 +93,20 @@ class Templater
     public function make(string $template_name, array $values = []): string
     {
         $filename = $this->dir . "/" . $template_name . ".php";
-        
         if (!is_file($filename)) {
             throw new Exception("Template \"" . $template_name ."\" is not found");
         }
+        if (count($values) == 1 && array_key_exists(0, $values)) {
+            $values = [ "value" => $values[0] ];
+        }
         
+        $current_error_reporting = error_reporting(~E_NOTICE);
         ob_start();
         extract($values);
         include $filename;
         $result = ob_get_contents();
         ob_end_clean();
+        error_reporting($current_error_reporting);
         
         return $result;
     }
