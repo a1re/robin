@@ -1,5 +1,4 @@
 /vendor
-/i18n/**/*.ini
 /data/**/*.ini
 /logs/*.log
 /test.php
