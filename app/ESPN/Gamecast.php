@@ -184,7 +184,8 @@ class Gamecast
             "home_team" => $home_team,
             "home_team_score" => $this->score["home"][0],
             "away_team" => $away_team,
-            "away_team_score" => $this->score["away"][0]
+            "away_team_score" => $this->score["away"][0],
+            "schedule_time" => $this->schedule_time->getTimestamp()
         ];
     }
     
@@ -271,7 +272,7 @@ class Gamecast
     
     public function scoring(): array
     {
-        $drives = [ ];
+        $scoring_events = [ ];
         
         foreach ($this->drives as $event) {
             $plays = $event->getPlays();
@@ -288,18 +289,18 @@ class Gamecast
                     "id" => $team->getId()
                 ];
                 
-                $author = $plays[$i]->getAuthor();
-                $play["author"] = [
-                    "first_name" => $author->getFirstName(),
-                    "last_name" => $author->getLastName(),
-                    "full_name" => $author->getFullName(["include_position_and_number" => true]),
-                    "id" => $author->getId()
-                ];
+                if ($author = $plays[$i]->getAuthor()) {
+                    $play["author"] = [
+                        "first_name" => $author->getFirstName(),
+                        "last_name" => $author->getLastName(),
+                        "full_name" => $author->getFullName(["include_position_and_number" => true]),
+                        "id" => $author->getId()
+                    ];
+                }
                 
                 $play["type"] = $plays[$i]->getPlayType();
                 
-                if ($plays[$i]->getPasser()) {
-                    $passer = $plays[$i]->getPasser();
+                if ($passer = $plays[$i]->getPasser()) {
                     $play["passer"] = [
                         "first_name" => $passer->getFirstName(),
                         "last_name" => $passer->getLastName(),
@@ -319,6 +320,7 @@ class Gamecast
                     
                     if (!$plays[$i+1]->isScoringPlay()) {
                         $play["extra"] = [ "result" => "x"];
+                        $i++;
                         break;
                     }
                     
@@ -364,11 +366,11 @@ class Gamecast
                 
                 $play["home_score"] = $event->getHomeScore();
                 $play["away_score"] = $event->getAwayScore();
-                $drives[] = $play;
+                $scoring_events[] = $play;
             }
         }
         
-        return $drives;
+        return [ "scoring_events" => $scoring_events ];
     }
 
 }

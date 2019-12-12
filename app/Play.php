@@ -441,8 +441,8 @@ class Play extends GameTerms implements Translatable
         return $this->values[$player_type];       
     }
     
-    public function getAuthor(bool $pos_and_no = false): ?Player { return $this->getPlayer("author"); }
-    public function getPasser(bool $pos_and_no = false): ?Player { return $this->getPlayer("passer"); }
+    public function getAuthor(): ?Player { return $this->getPlayer("author"); }
+    public function getPasser(): ?Player { return $this->getPlayer("passer"); }
 
     /**
      * Return list of defending players of the play and translate their names if needed.
@@ -513,7 +513,7 @@ class Play extends GameTerms implements Translatable
      */
     public function __get(string $name)
     {
-        if (!in_array($name, $this->values)) {
+        if (!array_key_exists($name, $this->values)) {
             throw new Exception("Unknown property \"" . $name . "\"");
         }
         
