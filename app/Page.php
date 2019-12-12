@@ -22,7 +22,7 @@ class Page
     const ENGINES = [
         "ESPN/Gamecast" => [
             "class" => "\\Robin\\ESPN\\Gamecast",
-            "pattern" => "#https://(www\.)?espn\.com/(nfl|college-football)/game/_/gameId/([0-9]+)#i",
+            "pattern" => "#https?://(www\.)?espn\.com/(nfl|college-football)/game/_/gameId/([0-9]+)#i",
             "language" => "en_US"
         ]
     ];
