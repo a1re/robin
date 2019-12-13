@@ -11,8 +11,8 @@
         td, th { padding:5px 10px; border:#ddd 1px solid; }
         th { text-align:left; }
         textarea.copy { width:100%; height:100px; background:#eee; font-family:'Courier New', monospace; font-weight:400; padding:5px; font-size:1em; border:#ddd 1px solid; border-radius:5px; }
-        button.copy-text { margin:5px 0; padding:5px; cursor:pointer; background:transparent; border:#ccc 2px solid; border-radius:5px; font-weight:700; color:#bbb; text-transform:uppercase; outline:none; }
-        button.copy-text:active { background:#ffffc8; border-color:#c1c289; color:#c1c289; padding-top:6px; padding-bottom:4px; }
+        button { margin:5px 0; padding:5px; cursor:pointer; background:transparent; border:#ccc 2px solid; border-radius:5px; font-weight:700; color:#bbb; text-transform:uppercase; outline:none; }
+        button:active { background:#ffffc8; border-color:#c1c289; color:#c1c289; padding-top:6px; padding-bottom:4px; }
         button.error { color:red; border-color:red; }
     </style>
 </head>

@@ -10,7 +10,7 @@
         <th>Итог</th>
     </tr>
     <tr>
-        <td><?=$home["team"]["name"]?></td>
+        <td><a href="edit.php?<?=$home["team"]["composition_values"]?>"><?=$home["team"]["name"]?></a></td>
         <td><?=$home["q1"]?></td>
         <td><?=$home["q2"]?></td>
         <td><?=$home["q3"]?></td>
@@ -19,7 +19,7 @@
         <td><?=$home["total"]?></td>
     </tr>
     <tr>
-        <td><?=$away["team"]["name"]?></td>
+        <td><a href="edit.php?<?=$away["team"]["composition_values"]?>"><?=$away["team"]["name"]?></a></td>
         <td><?=$away["q1"]?></td>
         <td><?=$away["q2"]?></td>
         <td><?=$away["q3"]?></td>

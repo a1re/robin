@@ -197,6 +197,7 @@ class Gamecast
                 "full_name" => $this->home_team->getFullName(),
                 "abbr" => $this->home_team->getAbbr(),
                 "logo" => $this->home_team->getImg(),
+                "composition_values" => $this->home_team->getCompositionLinkValues(),
                 "logo_width" => 150,
                 "logo_height" => 150
             ],
@@ -220,6 +221,7 @@ class Gamecast
                 "full_name" => $this->away_team->getFullName(),
                 "abbr" => $this->away_team->getAbbr(),
                 "logo" => $this->away_team->getImg(),
+                "composition_values" => $this->away_team->getCompositionLinkValues(),
                 "logo_width" => 150,
                 "logo_height" => 150
             ],
@@ -247,13 +249,15 @@ class Gamecast
                 "name" => $this->home_team->getShortName(),
                 "full_name" => $this->home_team->getFullName(),
                 "abbr" => $this->home_team->getAbbr(),
-                "logo" => $this->home_team->getImg()
+                "logo" => $this->home_team->getImg(),
+                "composition_values" => $this->home_team->getCompositionLinkValues()
             ],
             "away_team" => [
                 "name" => $this->away_team->getShortName(),
                 "full_name" => $this->away_team->getFullName(),
                 "abbr" => $this->away_team->getAbbr(),
-                "logo" => $this->away_team->getImg()
+                "logo" => $this->away_team->getImg(),
+                "composition_values" => $this->home_team->getCompositionLinkValues()
             ]
         ];
         foreach (self::LEADERS_LIST as $leader) {
@@ -263,7 +267,8 @@ class Gamecast
                 $leaders[$leader][$team . "_team"] = [
                     "first_name" => $this->$leader_name->getFirstName(),
                     "last_name" =>$this->$leader_name->getLastName(),
-                    "stats" => $this->$leader_name->getJoinedStats(", ")
+                    "stats" => $this->$leader_name->getJoinedStats(", "),
+                    "composition_values" => $this->$leader_name->getCompositionLinkValues()
                 ];
             }
         }
@@ -294,7 +299,8 @@ class Gamecast
                         "first_name" => $author->getFirstName(),
                         "last_name" => $author->getLastName(),
                         "full_name" => $author->getFullName(["include_position_and_number" => true]),
-                        "id" => $author->getId()
+                        "id" => $author->getId(),
+                        "composition_values" => $author->getCompositionLinkValues()
                     ];
                 }
                 
@@ -305,7 +311,8 @@ class Gamecast
                         "first_name" => $passer->getFirstName(),
                         "last_name" => $passer->getLastName(),
                         "full_name" => $passer->getFullName(["include_position_and_number" => true, "genitive" => true]),
-                        "id" => $passer->getId()
+                        "id" => $passer->getId(),
+                        "composition_values" => $passer->getCompositionLinkValues()
                     ];
                 }
                 
@@ -332,7 +339,8 @@ class Gamecast
                                 "first_name" => $extra_author->getFirstName(),
                                 "last_name" => $extra_author->getLastName(),
                                 "full_name" => $extra_author->getFullName(["include_position_and_number" => true]),
-                                "id" => $extra_author->getId()
+                                "id" => $extra_author->getId(),
+                                "composition_values" => $extra_author->getCompositionLinkValues()
                             ];
                         }
                         $play["extra"]["type"] = $plays[$i+1]->getPlayType();
@@ -346,7 +354,8 @@ class Gamecast
                                 "first_name" => $extra_author->getFirstName(),
                                 "last_name" => $extra_author->getLastName(),
                                 "full_name" => $extra_author->getFullName(["include_position_and_number" => true]),
-                                "id" => $extra_author->getId()
+                                "id" => $extra_author->getId(),
+                                "composition_values" => $extra_author->getCompositionLinkValues()
                             ];
                         }
                         $play["extra"]["type"] = $plays[$i+1]->getPlayType();
@@ -356,7 +365,8 @@ class Gamecast
                                 "first_name" => $extra_passer->getFirstName(),
                                 "last_name" => $extra_passer->getLastName(),
                                 "full_name" => $extra_passer->getFullName(["include_position_and_number" => true, "genitive" => true]),
-                                "id" => $extra_passer->getId()
+                                "id" => $extra_passer->getId(),
+                                "composition_values" => $extra_passer->getCompositionLinkValues()
                             ];
                         }
                     }

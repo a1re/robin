@@ -6,11 +6,11 @@
         <td><?=$e["scoring_method"]?></td>
         <td><strong><?=$e["team"]["abbr"]?></strong></td>
         <td>
-            <? if ($e["author"] != NULL) echo $e["author"]["full_name"]." "; ?>
+            <? if ($e["author"] != NULL): ?><a href="edit.php?<?=$e["author"]["composition_values"]?>"><?=$e["author"]["full_name"]?></a> <? endif; ?>
             <?=$e["type"]?>
-            <? if ($e["passer"] != NULL) echo $e["passer"]["full_name"]; ?>
+            <? if ($e["passer"] != NULL): ?><a href="edit.php?<?=$e["passer"]["composition_values"]?>"><?=$e["passer"]["full_name"]?></a><? endif; ?>
             <? if ($e["extra"] != NULL): ?>
-                (<?=$e["extra"]["result"] ?><? if ($e["extra"]["author"] != NULL) echo " ".$e["extra"]["author"]["full_name"]; ?><? if(strlen($e["extra"]["type"]) > 0) echo " ".$e["extra"]["type"]; ?><? if ($e["extra"]["passer"] != NULL) echo " ".$e["extra"]["passer"]["full_name"]; ?>)
+                (<?=$e["extra"]["result"] ?><? if ($e["extra"]["author"] != NULL):?> <a href="edit.php?<?=$e["extra"]["author"]["composition_values"]?>"><?=$e["extra"]["author"]["full_name"]?></a><? endif; ?><? if(strlen($e["extra"]["type"]) > 0): ?> <?=$e["extra"]["type"]; ?><? endif; ?><? if ($e["extra"]["passer"] != NULL): ?> <a href="edit.php?<?=$e["extra"]["passer"]["composition_values"]?>"><?=$e["extra"]["passer"]["full_name"]?></a><? endif; ?>)
             <? endif; ?>
         </td>
         <td><?=$e["home_score"]?>:<?=$e["away_score"]?></td>
@@ -25,7 +25,7 @@
 <?=$e["type"]?>
 <? if ($e["passer"] != NULL) echo " ".$e["passer"]["full_name"]; ?>
 <? if ($e["extra"] != NULL): ?>
-(<?=$e["extra"]["result"] ?>
+ (<?=$e["extra"]["result"] ?>
 <? if ($e["extra"]["author"] != NULL) echo " ".$e["extra"]["author"]["full_name"]; ?>
 <? if(strlen($e["extra"]["type"]) > 0) echo " ".$e["extra"]["type"]; ?>
 <? if ($e["extra"]["passer"] != NULL) echo " ".$e["extra"]["passer"]["full_name"]; ?>

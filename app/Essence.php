@@ -7,6 +7,7 @@ use \Robin\Interfaces\Translatable;
 use \Robin\Language;
 use \Robin\Logger;
 use \Robin\Inflector;
+use \Robin\Keeper;
 
  /**
   * Essence class for basing on it different objects like Players, Teams, etc.
@@ -557,6 +558,30 @@ class Essence implements Translatable
         }
         
         return (bool) $count_values;
+    }
+    
+    /**
+     * Creates query string of values for composition link to edit.php. This allows
+     * to create ini file with localisation by clicking on a link in a parsed page.
+     *
+     * @return  string                string with set of values, e.g. id=..&category=..&
+     */    
+    public function getCompositionLinkValues(): string
+    {
+        $values = [ ];
+        $values[] = "id=" . urlencode($this->id);
+        $values[] = "category=" . urlencode($this->category);
+        $values[] = "language=" . urlencode($this->language);
+        $values[] = "locale=" . urlencode($this->locale);
+        
+        $attributes = $this->getAttributes();
+        $values[] = "attributes=" . join(",", $attributes);
+        foreach ($attributes as $attribute) {
+            if ($this->$attribute != null) {
+                $values[] = $attribute . "=" . urlencode($this->$attribute);
+            }
+        }
+        return join("&", $values);
     }
 
 }
