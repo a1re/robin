@@ -68,21 +68,30 @@ button.error {
     border-bottom-color: #901313;
 }
 
-input[type=text] {
+input {
     padding: 6px;
     border: #aaa 1px solid;
     border-radius: 5px;
     margin-top: 5px;
 }
 
-input[type=text]:focus {
+input:focus {
     outline: none;
     border-color: #d6d858;
+}
+
+label {
+    margin-bottom: 5px;
 }
 
 p.error {
     font-weight: 700;
     color: #b21f1f;
+}
+
+p.success {
+    font-weight: 700;
+    color: #1ca62c;
 }
 
 textarea {
@@ -95,6 +104,7 @@ textarea {
     font-size: 1em;
     border: #ddd 1px solid;
     border-radius: 5px;
+    outline: none;
 }
 
 textarea.big {
