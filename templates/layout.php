@@ -7,7 +7,7 @@
 </head>
 <body>
     <div id="wrapper">
-        <form method="post">
+        <form method="get" action="index.php">
             <label>
                 ESPN Game URL:
                 <input type="text" value="<?=$url?>" name="url" id="url" />

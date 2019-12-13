@@ -26,10 +26,10 @@ $templater = new Templater("templates");
 
 $layout_values = [];
 
-if(array_key_exists("url", $_POST)) {
-    $layout_values["url"] = htmlspecialchars($_POST["url"]);
+if(array_key_exists("url", $_GET)) {
+    $layout_values["url"] = htmlspecialchars($_GET["url"]);
     $layout_values["body"] = "";
-    $page = new Page($_POST["url"], "ru_RU");
+    $page = new Page($_GET["url"], "ru_RU");
     $methods = $page->getMethods();
     
     foreach ($methods as $method) {
