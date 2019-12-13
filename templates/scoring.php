@@ -1,4 +1,4 @@
-<h2>Ход игры</h2>
+<h3>Ход игры</h3>
 <table>
 <? foreach($scoring_events as $e): ?>
     <tr>

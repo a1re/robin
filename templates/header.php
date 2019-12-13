@@ -1,11 +1,11 @@
-<h1>
+<h2>
     <img width="30" height="30" src="<?=$home_team["logo"]?>" style="vertical-align: middle" />
     <?=$home_team["name"]?>
     <?=$home_team_score?>&hyphen;<?=$away_team_score?>
     <?=$away_team["name"]?>
     <img width="30" height="30" src="<?=$away_team["logo"]?>" style="vertical-align: middle"  />
     (<?=date("d.m H:i", $schedule_time)?>)
-</h1>
+</h2>
 
 <textarea class="copy" id="table-score">
 [table class="table-score"]

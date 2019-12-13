@@ -7,12 +7,10 @@
 </head>
 <body>
     <div id="wrapper">
+        <h1>Robin the URL parser</h1>
         <form method="get" action="index.php">
-            <label>
-                ESPN Game URL:
-                <input type="text" value="<?=$url?>" name="url" id="url" />
-                <button type="submit">Parse</button>
-            </label>
+            <input type="text" value="<?=$url?>" name="url" id="url" placeholder="Enter URL to be parsed" class="url" />
+            <button type="submit">Parse</button>
         </form>
         <?=$body?>
     </div>

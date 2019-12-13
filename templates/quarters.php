@@ -1,31 +1,31 @@
-<h2>Счет по четвертям</h2>
+<h3>Счет по четвертям</h3>
 <table>
     <tr>
         <th> </th>
-        <th>1</th>
-        <th>2</th>
-        <th>3</th>
-        <th>4</th>
-        <? if($home["ot"] != NULL): ?><td>OT</td><? endif; ?>
-        <th>Итог</th>
+        <th class="points">1</th>
+        <th class="points">2</th>
+        <th class="points">3</th>
+        <th class="points">4</th>
+        <? if($home["ot"] != NULL): ?><td class="points">OT</td><? endif; ?>
+        <th class="points">Итог</th>
     </tr>
     <tr>
         <td><a href="edit.php?<?=$home["team"]["composition_values"]?>"><?=$home["team"]["name"]?></a></td>
-        <td><?=$home["q1"]?></td>
-        <td><?=$home["q2"]?></td>
-        <td><?=$home["q3"]?></td>
-        <td><?=$home["q4"]?></td>
-        <? if($home["ot"] != NULL): ?><td><?=$home["ot"]?></td><? endif; ?>
-        <td><?=$home["total"]?></td>
+        <td class="points"><?=$home["q1"]?></td>
+        <td class="points"><?=$home["q2"]?></td>
+        <td class="points"><?=$home["q3"]?></td>
+        <td class="points"><?=$home["q4"]?></td>
+        <? if($home["ot"] != NULL): ?><td class="points"><?=$home["ot"]?></td><? endif; ?>
+        <td class="points"><?=$home["total"]?></td>
     </tr>
     <tr>
         <td><a href="edit.php?<?=$away["team"]["composition_values"]?>"><?=$away["team"]["name"]?></a></td>
-        <td><?=$away["q1"]?></td>
-        <td><?=$away["q2"]?></td>
-        <td><?=$away["q3"]?></td>
-        <td><?=$away["q4"]?></td>
-        <? if($away["ot"] != NULL): ?><td><?=$away["ot"]?></td><? endif; ?>
-        <td><?=$away["total"]?></td>
+        <td class="points"><?=$away["q1"]?></td>
+        <td class="points"><?=$away["q2"]?></td>
+        <td class="points"><?=$away["q3"]?></td>
+        <td class="points"><?=$away["q4"]?></td>
+        <? if($away["ot"] != NULL): ?><td class="points"><?=$away["ot"]?></td><? endif; ?>
+        <td class="points"><?=$away["total"]?></td>
     </tr>
 </table>
 <textarea class="copy" id="quarters">[table width=&quot;450&quot;]
