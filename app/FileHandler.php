@@ -89,7 +89,7 @@ class FileHandler implements DataStorage
             throw new Exception("Please set id of the object to be saved");
         }
         
-        $filepath = $this->getFilePath($object_id, true);
+        $filepath = $this->getFilePath($object_id, "ini", true);
         $ini = "";
         
         // Composing ini source
@@ -140,7 +140,7 @@ class FileHandler implements DataStorage
             throw new Exception("Please set id of the object to be saved");
         }
         
-        $filepath = $this->getFilePath($object_id, true);
+        $filepath = $this->getFilePath($object_id, "ini", true);
         if (file_exists($filepath) && is_file($filepath)) {
             return unlink($filepath);
         }
@@ -161,9 +161,61 @@ class FileHandler implements DataStorage
             throw new Exception("Please set id of the object to be read");
         }
         
-        $filepath = $this->getFilePath($object_id);
+        $filepath = $this->getFilePath($object_id, "ini");
         if (file_exists($filepath) && is_file($filepath)) {
             return parse_ini_file($filepath, true);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Reads source of the file
+     *
+     * @param   string  $filename   Identifier of the object, without file extension
+     * @return  string              Files source or null
+     */
+    public function readSource(string $filename): ?string
+    {
+        if (strlen($filename) == 0) {
+            throw new Exception("Please set id of the object to be read");
+        }
+        
+        $filepath = $this->getFilePath($filename);
+        if (file_exists($filepath) && is_file($filepath)) {
+            $file_handler = fopen($filepath, "r");
+            $file_contents = fread($file_handler, filesize($filepath));
+            fclose($file_handler);
+            return $file_contents;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Writes source to the file
+     *
+     * @param   string  $filename      Identifier of the object, without file extension
+     * @param   string  $source         Source to be written to the file
+     * @return  boolean                 Data in array format or FALSE if not found/read
+     */
+    public function saveSource(string $filename, string $source): bool
+    {
+        if (strlen($filename) == 0) {
+            throw new Exception("Please set id of the object to be saved");
+        }
+        
+        $filepath = $this->getFilePath($filename, null, true);
+        
+        $file_handler = fopen($filepath, "w");
+        if ($file_handler && flock($file_handler, LOCK_EX)) {
+            $result = fwrite($file_handler, $source);
+            flock($file_handler, LOCK_UN);
+            fclose($file_handler);
+            if ($result) {
+                chmod($filepath, 0744);
+                return true;                
+            }
         }
         
         return false;
@@ -174,14 +226,14 @@ class FileHandler implements DataStorage
      * Optionally second parameter can be set to true to create all folders
      * on way to final filename.
      *
-     * @param   string  $filename           Name of the file (can include
-     *                                      containing folder)
-     * @param   bool    $create_folders     (optional) Set to true to create
-     *                                      non-exist folders in File Path
-     *
+     * @param   string  $filename           Name of the file (can include containing
+     *                                      folder)
+     * @param   string  $extension          Extenstion of the file, without leading dot
+     * @param   bool    $create_folders     (optional) Set to true to create non-exist
+     *                                      folders in File Path
      * @return  string                      Output string, simplified and clean
      */
-    public function getFilePath(string $filename, bool $create_folders = false): string
+    public function getFilePath(string $filename, string $extension = null, bool $create_folders = false): string
     {
         if (mb_strlen($filename) == 0) {
             throw new Exception("Filename cannot be empty");
@@ -191,10 +243,12 @@ class FileHandler implements DataStorage
             return $filename;
         }
         
-        // Checking filename extension and adding "ini" if there is no one
-        $lastname = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
-        if (mb_strrpos($lastname, ".") === false && mb_substr($lastname, mb_strrpos($lastname, ".") + 1) !== "ini") {
-            $filename .= ".ini";
+        if (strlen($extension) > 0) {
+            // Checking filename extension and adding "ini" if there is no one
+            $lastname = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
+            if (mb_strrpos($lastname, ".") === false && mb_substr($lastname, mb_strrpos($lastname, ".") + 1) !== $extension) {
+                $filename .= "." . $extension;
+            }
         }
         
         // Taking out prefix folder (or several) from input $filename and put
