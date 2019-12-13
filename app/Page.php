@@ -80,38 +80,31 @@ class Page
     private function cache(string $url): string
     {
         $fh = new FileHandler("cache");
-        $filename = $fh->getFilePath(md5($url),true);
+        $filename = md5($url) . ".html";
+        $filepath = $fh->getFilePath($filename);
         
-        if (file_exists($filename)) {
+        if (file_exists($filepath)) {
             // If file exists, but created more then 30 seconds ago, we delete it
-            $created_time = filectime($filename);
+            $created_time = filectime($filepath);
             if($created_time && time() > $created_time+300) {
-                unlink($filename);
+                unlink($filepath);
             } else {
-                return $filename;
+                return $filepath;
             }
         }
         
-        if (!file_exists($filename)) {
+        if (!file_exists($filepath)) {
             $contents = file_get_contents($url);
             
             if (!$contents) {
                 return $url;
             }
             
-            $fp = fopen($filename, "w");
-            
-            if ($fp && flock($fp, LOCK_EX)) {
-                fwrite($fp, $contents);
-                flock($fp, LOCK_UN);
-                fclose($fp);
-                chmod($filename, 0744);
-                
-                $files = scandir($fh->dir);
-                
+            if ($fh->saveSource($filename, $contents)) {
                 // As long as cache creating is considered to be unoften operation,
                 // we use it as a change for garbage collecting. We remove all
-                // files from cache folder that were created more then 30 sec ago.
+                // files from cache folder that were created more then 30 sec ago.     
+                $files = scandir($fh->dir);
                 foreach ($files as $existing_file) {
                     if (is_file($fh->dir . "/" . $existing_file)) {
                         $created_time = filectime($fh->dir . "/" . $existing_file);
@@ -121,7 +114,7 @@ class Page
                     }
                 }
                 
-                return $filename;
+                return $filepath;
             }
         }
         return $url;
