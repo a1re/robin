@@ -35,7 +35,9 @@ if(array_key_exists("url", $_GET)) {
         $methods = $page->getMethods();
         
         foreach ($methods as $method) {
-            $layout_values["body"] .= $templater->make($method, $page->{$method}());
+            if ($values = $page->{$method}()) {
+                $layout_values["body"] .= $templater->make($method, $values);
+            }
         }
     } catch (Exception $e) {
         $messsage = $e->getMessage() . " (Line " . $e->getLine() . " in " . $e->getFile() . ")";

@@ -162,6 +162,9 @@ class Gamecast
     
     public function header(): array
     {
+        if ($this->home_team == null || $this->away_team == null) {
+            return null;
+        }
         $home_team = [
             "name" => $this->home_team->getShortName(),
             "full_name" => $this->home_team->getFullName(),
@@ -189,8 +192,12 @@ class Gamecast
         ];
     }
     
-    public function quarters(): array
+    public function quarters(): ?array
     {
+        if ($this->score == null) {
+            return null;
+        }
+        
         $home_score = [
             "team" => [
                 "name" => $this->home_team->getShortName(),
@@ -242,8 +249,12 @@ class Gamecast
         return [ "home" => $home_score, "away" => $away_score ];
     }
     
-    public function leaders(): array
+    public function leaders(): ?array
     {
+        if ($this->home_team == null || $this->away_team == null) {
+            return null;
+        }
+        
         $leaders = [
             "home_team" => [
                 "name" => $this->home_team->getShortName(),
@@ -275,8 +286,12 @@ class Gamecast
         return $leaders;
     }
     
-    public function scoring(): array
+    public function scoring(): ?array
     {
+        if ($this->drives == null || (is_array($this->drives) && count($this->drives) == 0)) {
+            return null;
+        }
+        
         $scoring_events = [ ];
         
         foreach ($this->drives as $event) {

@@ -310,7 +310,8 @@ class Parser
         $scoring_summary = $this->html->find("div[data-module=scoringSummary] div.scoring-summary > table tbody",0);
         
         if ($scoring_summary == null) {
-            throw new Exception("No scoring summary block was found");
+//            throw new Exception("No scoring summary block was found");
+            return [ ];
         }
         
         $scoring_summary = $scoring_summary->find("tr");
