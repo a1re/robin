@@ -171,7 +171,8 @@ class Gamecast
             "abbr" => $this->home_team->getAbbr(),
             "logo" => $this->home_team->getImg(),
             "logo_width" => 150,
-            "logo_height" => 150
+            "logo_height" => 150,
+            "composition_values" => $this->home_team->getCompositionLinkValues()
         ];
         
         $away_team = [
@@ -180,14 +181,20 @@ class Gamecast
             "abbr" => $this->away_team->getAbbr(),
             "logo" => $this->away_team->getImg(),
             "logo_width" => 150,
-            "logo_height" => 150
+            "logo_height" => 150,
+            "composition_values" => $this->away_team->getCompositionLinkValues()
         ];
+        
+        if ($this->score["home"][0] !== null && $this->score["away"][0] !== null) {
+            $score = $this->score["home"][0] . "–" . $this->score["away"][0];
+        } else {
+            $score = $this->schedule_time->format("H.i");
+        }
         
         return [
             "home_team" => $home_team,
-            "home_team_score" => $this->score["home"][0],
+            "score" =>  $score,
             "away_team" => $away_team,
-            "away_team_score" => $this->score["away"][0],
             "schedule_time" => $this->schedule_time->getTimestamp()
         ];
     }
