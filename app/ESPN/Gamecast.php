@@ -170,6 +170,7 @@ class Gamecast
             "full_name" => $this->home_team->getFullName(),
             "abbr" => $this->home_team->getAbbr(),
             "logo" => $this->home_team->getImg(),
+            "rank" => $this->home_team->getRank(),
             "logo_width" => 150,
             "logo_height" => 150,
             "composition_values" => $this->home_team->getCompositionLinkValues()
@@ -180,6 +181,7 @@ class Gamecast
             "full_name" => $this->away_team->getFullName(),
             "abbr" => $this->away_team->getAbbr(),
             "logo" => $this->away_team->getImg(),
+            "rank" => $this->away_team->getRank(),
             "logo_width" => 150,
             "logo_height" => 150,
             "composition_values" => $this->away_team->getCompositionLinkValues()

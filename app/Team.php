@@ -42,7 +42,7 @@ class Team extends Essence
         parent::__construct("Teams");
         $this->language = self::$default_language;
         
-        $this->setAttributes(["full_name", "short_name", "abbr", "img"]);
+        $this->setAttributes(["full_name", "short_name", "abbr", "img", "rank"]);
         
         if (is_array($full_name) && count($full_name) > 0) {
             if (!$this->import($full_name)) {

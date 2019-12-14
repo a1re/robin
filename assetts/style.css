@@ -141,3 +141,10 @@ a:hover, a:active {
 .inline-icon {
     vertical-align: middle;
 }
+
+.rank {
+    font-weight: 400;
+    font-size: .6em;
+    color: #666;
+    vertical-align: middle;
+}

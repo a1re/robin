@@ -117,6 +117,7 @@ class Parser
         $last_name = $this->html->find("div.competitors div." . $marker . " a.team-name .short-name", 0);
         $abbr_name = $this->html->find("div.competitors div." . $marker . " a.team-name .abbrev", 0);
         $logo_tag = $this->html->find("div.competitors div." . $marker . " div.team-info-logo img.team-logo", 0);
+        $rank = $this->html->find("div.competitors div." . $marker . " div.team-info-wrapper span.rank", 0);
         
         $full_name = "";
         $short_name = "";
@@ -142,6 +143,10 @@ class Parser
             if (filter_var($img_url, FILTER_VALIDATE_URL)) {
                 $team->img = $img_url;
             }
+        }
+        
+        if ($rank != null && is_object($team)) {
+            $team->rank = $rank->plaintext;
         }
         
         if ($this->locale != $this->language) {
