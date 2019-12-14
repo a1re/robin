@@ -125,6 +125,16 @@ class Decompose
             return $play;
         }
         
+        // Blocked punt return
+        $pattern = "(" . self::NAME_PATTERN_3W . ")\s\d{1,3}\sya?r?ds?\sreturn\sof\sblocked\spunt";
+        if (preg_match("/" . $pattern ."/i", $scoring_description, $matches)) {
+            $play = new Play(Play::BLOCKED_PUNT_RETURN, self::$possessing_team, self::$defending_team);
+            $play->setScoringMethod(Play::TD);
+            $play->setOrigin($matches[0]);
+            $play->setAuthor(self::makePlayer($matches[1], self::$possessing_team->getId() . "/" . $matches[1]));
+            return $play;
+        }
+        
         $play = new Play(Play::OTHER, self::$possessing_team, self::$defending_team);
         $play->setScoringMethod(Play::TD);
         $play->setOrigin($scoring_description);  
