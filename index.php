@@ -38,7 +38,8 @@ if(array_key_exists("url", $_GET)) {
             $layout_values["body"] .= $templater->make($method, $page->{$method}());
         }
     } catch (Exception $e) {
-        $layout_values["body"] = $templater->make("error", [ $e->getMessage() ]);
+        $messsage = $e->getMessage() . " (Line " . $e->getLine() . " in " . $e->getFile() . ")";
+        $layout_values["body"] = $templater->make("error", [ $messsage ]);
     }
 }
 

@@ -28,6 +28,7 @@ class Play extends GameTerms implements Translatable
     private $language;
     private $locale;
     private $translations = [];
+    private $data_handler;
     private $values = [
         "is_scoring_play" => false,
         "play_category" => null,
@@ -434,8 +435,7 @@ class Play extends GameTerms implements Translatable
                 throw new Exception("Please set handler with Play::setDataHandler() method to read translation data");
             }
             $this->values[$player_type]->setDataHandler($this->data_handler);
-            $this->values[$player_type]->setLocale($this->locale);
-            return $this->values[$player_type];
+            $this->values[$player_type]->setLocale($this->locale, true);
         }
         
         return $this->values[$player_type];       
