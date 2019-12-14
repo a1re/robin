@@ -162,6 +162,7 @@ class FileHandler implements DataStorage
         }
         
         $filepath = $this->getFilePath($object_id, "ini");
+
         if (file_exists($filepath) && is_file($filepath)) {
             return parse_ini_file($filepath, true);
         }
@@ -245,8 +246,14 @@ class FileHandler implements DataStorage
         
         if (strlen($extension) > 0) {
             // Checking filename extension and adding "ini" if there is no one
-            $lastname = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
-            if (mb_strrpos($lastname, ".") === false && mb_substr($lastname, mb_strrpos($lastname, ".") + 1) !== $extension) {
+            $last_segment = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
+            // There is a chance that las segment can start with smth like A.J., so
+            // we need to cut it off for proper extenstion search
+            if (preg_match("/[a-z]{1}\.\s?[a-z]{1}\./i", mb_substr($last_segment, 0, 5))) {
+                $last_segment = mb_substr($last_segment, 5);
+            }
+            $last_segment_extension = mb_substr($last_segment, mb_strrpos($last_segment, ".") + 1);
+            if (mb_strrpos($last_segment, ".") === false && $last_segment_extension !== $extension) {
                 $filename .= "." . $extension;
             }
         }
@@ -256,7 +263,7 @@ class FileHandler implements DataStorage
         // merging with $folders
         $folders = explode("/", $filename);
         $filename = array_pop($folders);
-        
+    
         // Simplifying filename to cut away dagnerous symbols. If filename has
         // extension, we simplify it separately.
         $filename_ext = mb_strrpos($filename, ".") ? mb_strcut($filename, mb_strrpos($filename, ".")) : false;
