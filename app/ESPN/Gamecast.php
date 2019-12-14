@@ -282,6 +282,11 @@ class Gamecast
         foreach ($this->drives as $event) {
             $plays = $event->getPlays();
             for ($i=0; $i<count($plays); $i++) {
+                
+                if (!$plays[$i]->isScoringPlay()) {
+                    continue;
+                }
+                
                 $play = [ ];
                 $play["quarter"] = $plays[$i]->getQuarter();
                 $play["scoring_method"] = $plays[$i]->getScoringMethod();
@@ -305,6 +310,10 @@ class Gamecast
                 }
                 
                 $play["type"] = $plays[$i]->getPlayType();
+                
+                if ($plays[$i]->play_type == GameTerms::OTHER) {
+                    $play["type"] = $plays[$i]->origin;
+                }
                 
                 if ($passer = $plays[$i]->getPasser()) {
                     $play["passer"] = [

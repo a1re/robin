@@ -125,7 +125,11 @@ class Decompose
             return $play;
         }
         
-        return null;
+        $play = new Play(Play::OTHER, self::$possessing_team, self::$defending_team);
+        $play->setScoringMethod(Play::TD);
+        $play->setOrigin($scoring_description);  
+
+        return $play;
     }
 
     /**
