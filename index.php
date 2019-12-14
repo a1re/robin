@@ -36,6 +36,9 @@ if(array_key_exists("url", $_GET)) {
         
         foreach ($methods as $method) {
             if ($values = $page->{$method}()) {
+                if (isset($values["home_team"]["name"]) && isset($values["away_team"]["name"])) {
+                    $layout_values["header"] = $values["home_team"]["name"] . " – " . $values["away_team"]["name"];
+                }
                 $layout_values["body"] .= $templater->make($method, $values);
             }
         }

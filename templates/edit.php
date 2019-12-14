@@ -1,9 +1,9 @@
 <html>
 <head>
-    <title>Robin the bot</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
-    <link rel="stylesheet" type="text/css" media="screen" href="/assetts/style.css" />
+    <title><? if ($id): ?><?=$id?> – <? endif; ?>Robin the bot</title>
+    <link rel="icon" type="image/x-icon" href="assetts/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="512x512" href="assetts/favicon.png" />
+    <link rel="stylesheet" type="text/css" media="screen" href="assetts/style.css" />
 </head>
 <body>
     <div id="wrapper">

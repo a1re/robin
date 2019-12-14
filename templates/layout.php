@@ -1,13 +1,13 @@
 <html>
 <head>
-    <title>Robin the bot</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
-    <link rel="stylesheet" type="text/css" media="screen" href="/assetts/style.css" />
+    <title><? if ($header): ?><?=$header?> – <? endif; ?>Robin the bot</title>
+    <link rel="icon" type="image/x-icon" href="assetts/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="512x512" href="assetts/favicon.png" />
+    <link rel="stylesheet" type="text/css" media="screen" href="assetts/style.css" />
 </head>
 <body>
     <div id="wrapper">
-        <h1>Robin the URL parser</h1>
+        <h1><img src="assetts/favicon.png" width="25" height="25" alt="" class="inline-icon" /> Robin the URL parser</h1>
         <form method="get" action="index.php">
             <input type="text" value="<?=$url?>" name="url" id="url" placeholder="Enter URL to be parsed" class="url" />
             <button type="submit">Parse</button>

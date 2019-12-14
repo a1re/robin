@@ -58,7 +58,12 @@ button {
     outline: none;
 }
 
-button:active {
+button:hover {
+    background: #62ba0e;
+    box-shadow: 0 3px #569f10;
+}
+
+button:active { 
     background: #ccc53a;
     box-shadow: 0 3px #a19a19;
 }
@@ -119,4 +124,20 @@ h3 {
     text-transform: uppercase;
     color: #bbb;
     margin-left: 2px;
+}
+
+a:link {
+    color: #000;
+}
+
+a:visited {
+    color: #888;
+}
+
+a:hover, a:active {
+    color: #a39e3a;
+}
+
+.inline-icon {
+    vertical-align: middle;
 }
