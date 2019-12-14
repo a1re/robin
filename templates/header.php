@@ -6,9 +6,11 @@
     <img width="30" height="30" src="<?=$away_team["logo"]?>" class="inline-icon" />
     (<?=date("d.m H:i", $schedule_time)?>)
 </h2>
-
+<? if ($game_title): ?>
+<p><?=$game_title?></p>
+<? endif; ?>
 <textarea class="copy" id="table-score">
-[table class="table-score"]
+[table class="table-score"<? if ($game_title): ?> caption="<?=$game_title?>"<? endif; ?>]
 <img class="alignnone size-thumbnail" src="<?=$home_team["logo"]?>" width="75" height="75" /> <?=$home_team["name"]?><?if ($home_team["rank"]):?> (<?=$home_team["rank"]?>)<?endif;?>,<strong><?=$score?></strong>,<?=$away_team["name"]?><?if ($away_team["rank"]):?> (<?=$away_team["rank"]?>)<?endif;?> <img class="alignnone size-thumbnail" src="<?=$away_team["logo"]?>" width="75" height="75" />
 [/table]
 </textarea>

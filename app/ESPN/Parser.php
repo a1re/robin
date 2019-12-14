@@ -85,7 +85,8 @@ class Parser
     /**
      * Parses scheduled time and returns \DataTime object or null if no info was found
      *
-     * @return  DateTime  scheduled time of event
+     * @param   string      $timezone   Timezone for DateTimeZone for correcting time
+     * @return  DateTime                Scheduled time of event according to time zone
      */
     public function getScheduleTime(string $timezone): ?\DateTime
     {
@@ -102,6 +103,22 @@ class Parser
             return $d;
         }
         return null;
+    }
+    
+    /**
+     * Parses game title if avalible (usually bowl name)
+     *
+     * @return  string      Game title
+     */
+    public function getGameTitle(): ?string
+    {
+        $game_title = $this->html->find(".game-strip .header", 0);
+        
+        if ($game_title == null) {
+            return null;
+        }
+        
+        return $game_title->plaintext;
     }
     
     /**

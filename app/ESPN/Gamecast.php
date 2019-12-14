@@ -24,7 +24,7 @@ class Gamecast
     
     private $schedule_time, $score, $home_team, $away_team, $home_passing_leader,
     $away_passing_leader, $home_rushing_leader, $away_rushing_leader,
-    $home_receiving_leader, $away_receiving_leader;
+    $home_receiving_leader, $away_receiving_leader, $game_title;
     private $drives = [ ];
     private $keeper;
     
@@ -51,6 +51,7 @@ class Gamecast
         }
         
         $this->schedule_time = $parser->getScheduleTime(self::TIMEZONE);
+        $this->game_title = $parser->getGameTitle();
         $this->score = $parser->getScore();
         
         foreach (self::TEAMS_LIST as $team) {
@@ -95,6 +96,7 @@ class Gamecast
     {
         $export = [ ];
         $export["schedule_time"] = $this->schedule_time->format("c");
+        $export["game_title"] = $this->game_title;
         $export["score"] = $this->score;
         
         foreach (self::TEAMS_LIST as $team) {
@@ -195,7 +197,8 @@ class Gamecast
         
         return [
             "home_team" => $home_team,
-            "score" =>  $score,
+            "score" => $score,
+            "game_title" => $this->game_title,
             "away_team" => $away_team,
             "schedule_time" => $this->schedule_time->getTimestamp()
         ];
