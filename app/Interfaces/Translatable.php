@@ -3,18 +3,10 @@
 namespace Robin\Interfaces;
 
 interface Translatable
-{    
-    public function getId(): string;
+{
+    public function setLocale(string $locale): bool;
+    public function getLocale(): string;
+    public function isTranslated($locale): bool;
     
-    public function setTranslation(string $language, $mixed_attributes, string $value = ""): void;
-
-    public function getOriginalLanguage(): string;
-    public function getAttributes(): array;
-    public function getTranslation(string $language, string $attrubute): ?string;
-    public function getTranslationsList(string $language): array;
-    
-    public function composeOriginal(): void;
-    public function applyTranslation(string $language = ""): bool;
-    public function saveTranslation(string $folder = ""): bool;
-    public function readTranslation(string $language, string $folder = ""): bool;
+    public function setDataHandler(\Robin\Keeper $data_handler): void;
 }

@@ -1,0 +1,1 @@
+<pre style="background:#eee; border:#ddd 1px solid; padding:10px; border-radius:5px; overflow:scroll;"><? var_dump($value); ?></pre>

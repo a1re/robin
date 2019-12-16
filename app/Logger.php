@@ -26,8 +26,14 @@ trait Logger
         }
     }
     
-    public function log($message)
+    public function log($message): void
     {
+        if (!(is_string($message) || is_numeric($message))) {
+            ob_start();
+            var_dump($message);
+            $message = ob_get_clean();
+        }
+        
         if (is_array($this->logger)) {
            $this->logger[] = $message;
            return;
