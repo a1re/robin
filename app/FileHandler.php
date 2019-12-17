@@ -253,6 +253,10 @@ class FileHandler implements DataStorage
                 $last_segment = mb_substr($last_segment, 5);
             }
             $last_segment_extension = mb_substr($last_segment, mb_strrpos($last_segment, ".") + 1);
+            // If dot was a last symbol, we cut it off
+            if (mb_strrpos($last_segment, ".")+1 == strlen($last_segment)) {
+                $last_segment = mb_substr(strlen($last_segment), 0, -1);
+            }
             if (mb_strrpos($last_segment, ".") === false && $last_segment_extension !== $extension) {
                 $filename .= "." . $extension;
             }
