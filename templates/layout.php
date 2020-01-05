@@ -3,7 +3,7 @@
     <title><? if ($header): ?><?=$header?> – <? endif; ?>Robin the bot</title>
     <link rel="icon" type="image/x-icon" href="assetts/favicon.ico" />
     <link rel="icon" type="image/png" sizes="512x512" href="assetts/favicon.png" />
-    <link rel="stylesheet" type="text/css" media="screen" href="assetts/style.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="assetts/style.css?<?=time()?>" />
 </head>
 <body>
     <div id="wrapper">

@@ -51,8 +51,14 @@ try {
         $layout_values["id"] = htmlspecialchars($_GET["id"]);
     }
     
+    if (array_key_exists("password", $_COOKIE) && strlen($_COOKIE["password"]) > 0){
+        $layout_values["password"] = htmlspecialchars($_COOKIE["password"]);
+    }
+    
     $fh = new FileHandler("data");
-    $object_id = $_GET["category"] . "/" . $_GET["id"] . ".ini";
+    $object_id = $_GET["category"] . "/" . $_GET["id"];
+
+    $layout_values["attributes"] = explode(",", $_GET["attributes"]);
     
     if (count($_POST) > 0) {
         
@@ -60,115 +66,66 @@ try {
             $layout_values["referer"] = $_POST["referer"];
         }
                 
-        if (!array_key_exists("content", $_POST)) {
+        if (!array_key_exists("values", $_POST) || !is_array($_POST["values"])) {
             throw new Exception("Не задано содержание настройки объекта");
         }
-        
-        if (strlen($_POST["content"]) == 0) {
-            throw new Exception("Пустое содержание настройки объекта");
-        }
-        
-        $layout_values["content"] = htmlspecialchars($_POST["content"]);
         
         if (!array_key_exists("password", $_POST)) {
             throw new Exception("Введите пароль");
         }
         
-        if ($_POST["password"] != "sovaf2010") {
+        if ($_POST["password"] == "sovaf2010") {
+            setcookie("password", $_POST["password"], time()+86400*31);
+        } else {
             throw new Exception("Неверный пароль");
-        }
+        } 
         
-        $layout_values["password"] = htmlspecialchars($_POST["password"]);
+        $layout_values["locales"] = array_keys($_POST["values"]);
+        $layout_values["values"] = $_POST["values"];
         
-        if (count(parse_ini_string($_POST["content"], true)) == 0) {
-            $msg =  "Настройка должна быть валидным ";
-            $msg .= "<a href=\"https://ru.wikipedia.org/wiki/.ini\" target=\"_blank\">файлом конфигурации .ini</a>.";
-            throw new Exception($msg);
-        }
+        // HERE WE NEED TO VERIFY IF $_POST["values"] IS VALUD SET OF VALUES
         
-        if ($fh->saveSource($object_id, $_POST["content"])) {
+        if ($fh->save($object_id, $_POST["values"])) {
             $layout_values["result"] = $templater->make("success", [ "Настройка сохранена" ]);
         } else {
             $layout_values["result"] = $templater->make("error", [ "Ошибка при сохранении" ]);
         }
     } else {
-        if ($file = $fh->readSource($object_id)) {
-            $layout_values["content"] = htmlspecialchars($file);
+        if (!array_key_exists("attributes", $_GET)) {
+            throw new Exception("Не заданы атрибуты объекта");
+        }
+        $values = $fh->read($object_id);
+
+        // If we successfully read values from saved file, we just pass it to template
+        if (is_array($values)) {
+            // Taking locales to template as columns
+            $layout_values["locales"] = array_keys($values);
         } else {
             if (!array_key_exists("language", $_GET)) {
                 throw new Exception("Не задан оригинальный язык объекта");
             }
             
-            if (!array_key_exists("attributes", $_GET)) {
-                throw new Exception("Не заданы атрибуты объекта");
-            }
-            
-            $ini = "[" . $_GET["language"] . "]" . PHP_EOL;
-            $attributes = explode(",", $_GET["attributes"]);
-            foreach ($attributes as $attribute) {
-                $ini .= $attribute . " = \"";
-                if (array_key_exists($attribute, $_GET)) {
-                    $ini .= $_GET[$attribute];
-                }
-                $ini .= "\";" . PHP_EOL;
-            }
+            // If no data for this essence was stored in file, we take values
+            // from $_GET, incl. locales, combined from $_GET["language"] and $_GET["locale"]
+            $layout_values["locales"] = [ $_GET["language"] ];
             
             if (array_key_exists("locale", $_GET) && $_GET["language"] != $_GET["locale"]) {
-                $ini .= PHP_EOL . "[" . $_GET["locale"] . "]" . PHP_EOL;
-                foreach ($attributes as $attribute) {
-                    $ini .= $attribute . " = \" \";" . PHP_EOL;
-                }
+                $layout_values["locales"][] = htmlspecialchars($_GET["locale"]);
             }
             
-            $layout_values["content"] = htmlspecialchars($ini);
+            // Putting values into similiar array of data as we retrive from file
+            $language = htmlspecialchars($_GET["language"]);
+            foreach ($layout_values["attributes"] as $attribute) {
+                if (array_key_exists($attribute, $_GET)) {
+                    $values[$language][$attribute] = $_GET[$attribute];
+                }
+            }
         }
+        
+        $layout_values["values"] = $values;
     }
 } catch (Exception $e) {
     $layout_values["result"] = $templater->make("error", [ $e->getMessage() ]);
 }    
 
 echo $templater->make("edit", $layout_values);
-
-/*
-do {
-    if (!array_key_exists("id", $layout_values)) {
-
-    }
-    
-    if (!array_key_exists("type", $layout_values)) {
-        $layout_values["result"] = "Не задан тип объекта";
-        $layout_values["result_type"] = "error";
-        break;
-    }
-    
-} while(1);
-*/
-
-
-/*
-
-
-
-<html>
-<head>
-    <title>Robin the bot</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
-    <style type="text/css">
-        body { font-family:sans-serif; font-size: 10pt; }
-        #wrapper { margin:0 auto; width:100%; min-width:300px; max-width:800px; }
-        textarea { width:100%; height:300px; background:#eee; font-family:'Courier New', monospace; font-weight:400; padding:5px; font-size:1em; border:#ddd 1px solid; border-radius:5px; }
-    </style>
-</head>
-<body>
-    <div id="wrapper">
-        <h1><?=htmlspecialchars($_GET["id"]);?></h1>
-        <?
-
-        ?>
-        <textarea><?=htmlspecialchars($ini);?></textarea>
-    </div>
-</body>
-</html>
-*/
-?>
