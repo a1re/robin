@@ -148,3 +148,39 @@ a:hover, a:active {
     color: #666;
     vertical-align: middle;
 }
+
+table.attributes {
+    width: 100%;
+}
+
+table.attributes thead td {
+    border-top: none;
+    border-bottom: #ccc 2px solid;
+    padding-bottom: 10px;
+    color: #bbb;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: .98xem;
+}
+
+hr {
+    border: none;
+    height: 2px;
+    color: #ccc;
+    background-color: #ccc;
+}
+
+table.attributes tbody td, table.attributes tbody th {
+    border: none;
+}
+
+table.attributes td, table.attributes th {
+    font-size: .9em;
+    vertical-align: middle;
+    padding: 10px 0 5px 0;
+}
+
+table.attributes input {
+    width: 95%;
+    margin-top: 0;
+}

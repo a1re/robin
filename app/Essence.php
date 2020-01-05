@@ -547,7 +547,12 @@ class Essence implements Translatable
                     }
                 }
                 if (count($values_array)) {
-                    $this->values[$locale] = $values_array;
+                    // To avoid overwriting with empty strings, we have to go one by one
+                    foreach ($values_array as $attribute => $value) {
+                        if (strlen($value) > 0) {
+                            $this->values[$locale][$attribute] = $value;
+                        }
+                    }
                     $count_values++;
                 }
             }

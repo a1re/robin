@@ -90,12 +90,35 @@ class FileHandler implements DataStorage
         }
         
         $filepath = $this->getFilePath($object_id, "ini", true);
+        $ini = self::arrayToIni($values);
+        
+        // If nothing to write, just return false
+        if (strlen(trim($ini)) == 0) {
+            return false;
+        }
+        
+        if ($this->saveSource($object_id . ".ini", $ini)){
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Takes array of values and converts it into valid ini file sorce
+     *
+     * @param   aray  $values        Associative array of values 
+     *
+     * @return  string               Ini source that can be saved into file
+     */
+    public static function arrayToIni(array $values): string
+    {
         $ini = "";
         
         // Composing ini source
-        foreach ($values as $locale=>$values) {
+        foreach ($values as $category=>$values) {
             if (is_array($values)) {
-                $ini .= "[" . $locale . "]" . PHP_EOL;            
+                $ini .= "[" . $category . "]" . PHP_EOL;            
                 foreach ($values as $attrubute => $translation) {
                     if (!is_string($translation) && !is_numeric($translation)) {
                         continue;
@@ -105,27 +128,15 @@ class FileHandler implements DataStorage
                     $ini .= $attrubute . " = \"" . $translation . "\";" . PHP_EOL;
                 }
                 $ini .= PHP_EOL;
+            } else {
+                $value = str_replace(PHP_EOL, " ", $values);
+                $value = addslashes($value);
+                $ini .= $category . " = \"" . $value . "\";" . PHP_EOL;
             }
         }
         
-        // If nothing to write, just return false
-        if (strlen(trim($ini)) == 0) {    
-            return false;
-        }
-        
-        $fp = fopen($filepath, "w");
-        if ($fp && flock($fp, LOCK_EX)) {
-            fwrite($fp, $ini);
-            flock($fp, LOCK_UN);
-            fclose($fp);
-            chmod($filepath, 0744);
-            
-            return true;
-        }
-        
-        return false;
+        return trim($ini);
     }
-    
     
     /**
      * Removes data of the object (deletes ini file)
@@ -133,7 +144,7 @@ class FileHandler implements DataStorage
      * @param   string  $object_id  Identifier of the object, without file extension
      *
      * @return  bool                TRUE on success, FALSE if file was not found or error
-     */    
+     */
     public function remove(string $object_id): bool
     {
         if (strlen($object_id) == 0) {
@@ -173,7 +184,7 @@ class FileHandler implements DataStorage
     /**
      * Reads source of the file
      *
-     * @param   string  $filename   Identifier of the object, without file extension
+     * @param   string  $filename   Identifier of the object as filename (with extension)
      * @return  string              Files source or null
      */
     public function readSource(string $filename): ?string
@@ -196,7 +207,7 @@ class FileHandler implements DataStorage
     /**
      * Writes source to the file
      *
-     * @param   string  $filename      Identifier of the object, without file extension
+     * @param   string  $filename       Identifier of the object as filename (with extension)
      * @param   string  $source         Source to be written to the file
      * @return  boolean                 Data in array format or FALSE if not found/read
      */
@@ -253,6 +264,10 @@ class FileHandler implements DataStorage
                 $last_segment = mb_substr($last_segment, 5);
             }
             $last_segment_extension = mb_substr($last_segment, mb_strrpos($last_segment, ".") + 1);
+            // If dot was a last symbol, we cut it off
+            if (mb_strrpos($last_segment, ".")+1 == strlen($last_segment)) {
+                $last_segment = mb_substr(strlen($last_segment), 0, -1);
+            }
             if (mb_strrpos($last_segment, ".") === false && $last_segment_extension !== $extension) {
                 $filename .= "." . $extension;
             }
