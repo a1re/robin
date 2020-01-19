@@ -189,7 +189,7 @@ class Gamecast
             "composition_values" => $this->away_team->getCompositionLinkValues()
         ];
         
-        if ($this->score["home"][0] !== null && $this->score["away"][0] !== null) {
+        if ($this->score !== null && $this->score["home"][0] !== null && $this->score["away"][0] !== null) {
             $score = $this->score["home"][0] . "–" . $this->score["away"][0];
         } else {
             $score = $this->schedule_time->format("H.i");
