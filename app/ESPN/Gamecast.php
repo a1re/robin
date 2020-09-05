@@ -63,9 +63,13 @@ class Gamecast
             foreach (self::LEADERS_LIST as $leader) {
                 $leader_name = $team . "_" . $leader;
                 $method_name = "get" . ucfirst(Inflector::underscoreToCamelCase($leader_name));
-                $this->$leader_name = $parser->$method_name();
-                $leader_id = $this->$team_name->getId() . "/" . $this->$leader_name->first_name . " " . $this->$leader_name->last_name;
-                $this->$leader_name->setId($leader_id);
+                try {
+                    $this->$leader_name = $parser->$method_name();
+                    $leader_id = $this->$team_name->getId() . "/" . $this->$leader_name->first_name . " " . $this->$leader_name->last_name;
+                    $this->$leader_name->setId($leader_id);
+                } catch (Exception $e) {
+                    $this->$leader_name = null;
+                }
             }
         }
         
@@ -283,10 +287,15 @@ class Gamecast
                 "composition_values" => $this->home_team->getCompositionLinkValues()
             ]
         ];
+
         foreach (self::LEADERS_LIST as $leader) {
             $leaders[$leader] = [ ];
             foreach (self::TEAMS_LIST as $team) {
                 $leader_name = $team . "_" . $leader;
+                if (!$this->$leader_name) {
+                    $leaders[$leader][$team . "_team"] = null;
+                    continue;
+                }
                 $leaders[$leader][$team . "_team"] = [
                     "first_name" => $this->$leader_name->getFirstName(),
                     "last_name" =>$this->$leader_name->getLastName(),
