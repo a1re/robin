@@ -174,6 +174,7 @@ class Gamecast
         $home_team = [
             "name" => $this->home_team->getShortName(),
             "full_name" => $this->home_team->getFullName(),
+            "original_name" => $this->home_team->getOriginalName(),
             "abbr" => $this->home_team->getAbbr(),
             "logo" => $this->home_team->getImg(),
             "rank" => $this->home_team->getRank(),
@@ -185,6 +186,7 @@ class Gamecast
         $away_team = [
             "name" => $this->away_team->getShortName(),
             "full_name" => $this->away_team->getFullName(),
+            "original_name" => $this->away_team->getOriginalName(),
             "abbr" => $this->away_team->getAbbr(),
             "logo" => $this->away_team->getImg(),
             "rank" => $this->away_team->getRank(),

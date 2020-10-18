@@ -5,6 +5,9 @@
     <a href="edit.php?<?=$away_team["composition_values"]?>"><?=$away_team["name"]?></a> <?if ($away_team["rank"]):?> <span class="rank">#<?=$away_team["rank"]?></span><?endif;?>
     <img width="30" height="30" src="<?=$away_team["logo"]?>" class="inline-icon" />
     (<?=date("d.m H:i", $schedule_time)?>)
+    <a href="https://www.youtube.com/results?search_query=<?=str_replace(" ", "+", $away_team["original_name"])?>+<?=str_replace(" ", "+", $home_team["original_name"])?>+<?=date("Y", $schedule_time)?>+highlights" target="_blank">
+      <img src="https://img.icons8.com/color/48/000000/youtube-play.png" width="30" height="30" class="inline-icon" alt="Search highlights on Youtube"/>
+    </a>
 </h2>
 <? if ($game_title): ?>
 <p><?=$game_title?></p>
