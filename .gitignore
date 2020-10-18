@@ -1,4 +1,5 @@
 /vendor
+/cache/**/*
 /data/**/*.ini
 /logs/*.log
 /test.php
