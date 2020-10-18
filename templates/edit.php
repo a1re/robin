@@ -56,7 +56,7 @@
         <? if ($id): ?>
         <h1>
             <?=str_replace("/", " &mdash; ", $id)?>
-            <a href="https://google.com/search?q=<?=str_replace("/", " ", $id)?>" target="_blank">
+            <a href="https://google.com/search?q=<?=str_replace("&", "%26", str_replace(" ", "+", str_replace("/", " ", $id)))?>" target="_blank">
                 <img src="https://img.icons8.com/color/48/000000/google-logo.png" width="20" height="20" style="vertical-align:middle" />
             </a>
         </h1>
