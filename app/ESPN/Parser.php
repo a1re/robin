@@ -10,6 +10,7 @@ use \Robin\Team;
 use \Robin\Player;
 use \Robin\Play;
 use \Robin\Drive;
+use \Robin\Conference;
 use \Robin\GameTerms;
 use \Robin\ESPN\Decompose;
 
@@ -55,6 +56,7 @@ class Parser
         $this->setLocale($language);
         Team::setDefaultLanguage($language);
         Player::setDefaultLanguage($language);
+        Conference::setDefaultLanguage($language);
     }
     
     
@@ -645,8 +647,15 @@ class Parser
                  }
             }
 
+            $conference = new Conference($table_name->plaintext);
+
+            if ($this->locale != $this->language) {
+                $conference->setDataHandler($this->data_handler);
+                $conference->setLocale($this->locale, true);
+            }
+
             array_push($tables, [
-                "name" => $table_name->plaintext . '!',
+                "title" => $conference,
                 "divisions" => $divisions
             ]);
         }

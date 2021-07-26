@@ -12,9 +12,12 @@ use \Robin\ESPN\Parser;
 
 class Standings {
     use Logger;
-    
+
+    const TRANSLATION_ID = "divisions"; // id for file with terms translation
     const METHODS = [ "tables" ];
+
     private $keeper;
+    private $translations = [];
     
     /**
      * Class constructor
@@ -37,6 +40,9 @@ class Standings {
         if(strlen($locale) > 0 && $locale != $language) {
             $parser->setLocale($locale);
         }
+
+        $translations = $this->keeper->read(self::TRANSLATION_ID);
+        $this->translations = array_key_exists($locale, $translations) ? $translations[$locale] : [];
 
         $this->tables = $parser->getTablesList();
     }
@@ -78,7 +84,7 @@ class Standings {
 
       foreach ($this->tables as $table_values) {
         $table = [
-          "name" => $table_values["name"],
+          "title" => $table_values["title"]->getTitle(),
           "divisions" => []
         ];
 
@@ -88,7 +94,9 @@ class Standings {
           ];
           
           if (array_key_exists("name", $division_values)) {
-            $division["name"] = $division_values["name"];
+            $division["name"] = array_key_exists($division_values["name"], $this->translations)
+                                ? $this->translations[$division_values["name"]]
+                                : $division_values["name"];
           }
 
           foreach ($division_values["teams"] as $team_values) {
