@@ -1,4 +1,4 @@
-American football game data grabber. Public version [available here](http://robin.firstandgoal.in/).
+American football game data grabber. Public version [available here](http://firstandgoal.in/robin).
 
 # How to use it
 Put game URL like https://www.espn.com/nfl/game/_/gameId/401131047 into input,
@@ -9,6 +9,9 @@ click "Parse" and enjoy structured data.
 
 # Changelog
 All notable changes to this project will be documented in this file.
+
+## v2.0 – 2020-11-22
+- Added Parsing Standigs Tables
 
 ## v1.1 - 2019-12-16
 - Fixed bug with surnames with dot on the end (e.g. Jr., Sr.),

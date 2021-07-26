@@ -430,7 +430,7 @@ class Parser
     }
 
     /**
-     * Calculates possessing+defending teams and ppints scoeed by values array
+     * Calculates possessing+defending teams and points scoeed by values array
      * [ (int) "current_home_score", (int) "current_away_score", (int) "new_home_score",
      * (int) "new_away_score", (string) "home_team", (string) "away_team"]. Variables
      * for possessing team, defending team and points scoread are passed as pointers.
@@ -506,5 +506,151 @@ class Parser
         
         // if header is not empty and doesn't start with first, second, third or fourth, it's overtime
         return GameTerms::OT;
+    }
+
+    /**
+     * Parses standing page and returns teams and standigs values.
+     * 
+     * @return  array   list of tables with Team objects and standigs' values
+     */
+    public function getTablesList(): array
+    {
+        $tables = [];
+        foreach ($this->html->find(".standings__table") as $table) {
+            $table_name = $table->find(".Table__Title", 0);
+            if (!$table_name) {
+                continue;
+            }
+
+            $table_teams = $table->find("table.Table", 0);
+            if (!$table_teams) {
+                continue;
+            }
+
+            $divisions = [];
+            $division_index = 0;
+
+            foreach ($table_teams->find("tbody tr") as $table_row_index=>$table_row) {
+
+                if ($table_row->hasClass("subgroup-headers")) {
+                    $divison_name = $table_row->find("span", 0);
+
+                    if (!$divison_name) {
+                        continue;
+                    }
+
+                    if (count($divisions) > 0) {
+                        $division_index++;
+                    }
+
+                     $divisions[$division_index] =  [
+                        "name" => $divison_name->plaintext,
+                        "teams" => []
+                    ];
+
+                    continue;
+                }
+
+                $team_block = $table_row->find("div.team-link", 0);
+                if (!$team_block) {
+                    continue;
+                }
+
+                if (count($divisions) === 0) {
+                    $divisions[$division_index] =  ["teams" => []];
+                }
+
+                $team_name = $team_block->find(".hide-mobile a", 0);
+                if ($team_name) {
+                    $team_name = $team_name->plaintext;
+                } else {
+                    continue;
+                }
+
+                $team_abbr = $team_block->find(".show-mobile abbr", 0);
+                if ($team_abbr) {
+                    $team_abbr = $team_abbr->plaintext;
+                } else {
+                    $team_abbr = "";
+                }
+
+                $team = new Team($team_name, "", $team_abbr);
+
+                $team_img = $team_block->find(".TeamLink__Logo a", 0);
+
+                if ($team_img) {
+                    $team_img_pattern = "#/(nfl|college-football)/team/_/(id|name)/([a-z0-9]+)/.+#i";
+                    $team_img_data = [];
+                    $team_img_matches = preg_match_all($team_img_pattern, $team_img->getAttribute("href"), $team_img_data);
+
+                    if ($team_img_matches) {
+                        if (isset($team_img_data[1][0]) && $team_img_data[1][0] === "college-football") {
+                            $team_img_data[1][0] = "ncaa";
+                        }
+                        $team_img = 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' . $team_img_data[1][0] . '/500/' . $team_img_data[3][0] . '.png&h=30&w=30';
+                    } else {
+                        $team_img = NULL;
+                    }
+                } else {
+                    $team_img = NULL;
+                }
+
+                $team_rank = $team_block->find(".pr2", 0);
+
+                if ($team_rank) {
+                    $team->rank = $team_rank->plaintext;
+                }
+        
+                if ($this->locale != $this->language) {
+                    $team->setDataHandler($this->data_handler);
+                    $team->setLocale($this->locale, true);
+                }
+
+                array_push($divisions[$division_index]["teams"], [
+                    "team" => $team,
+                    "logo" => $team_img,
+                    "row_index" => $table_row_index
+                ]);
+            }
+
+            $table_values = $table->find("table.Table", 1);
+            if (!$table_values) {
+                continue;
+            }
+
+            $value_rows = $table_values->find("tbody tr");
+
+            foreach ($divisions as $division_index => $division) {
+                foreach ($division["teams"] as $team_index => $team) {
+                    if (!array_key_exists($team["row_index"], $value_rows)) {
+                        continue;
+                    }
+
+                    $value_row = $value_rows[$team["row_index"]];
+
+                    $values = $value_row->find("span");
+                    if (!$values) {
+                        continue;
+                    }
+
+                    $divisions[$division_index]["teams"][$team_index]["values"] = [
+                        "conference" => $values[0]->plaintext,
+                        "overall" => $values[3]->plaintext,
+                        "home" => $values[6]->plaintext,
+                        "away" => $values[7]->plaintext,
+                        "streak" => $values[8]->plaintext
+                    ];
+
+                    $divisions[$division_index]["teams"][$team_index]["team"]->streak = $values[8]->plaintext;
+                 }
+            }
+
+            array_push($tables, [
+                "name" => $table_name->plaintext . '!',
+                "divisions" => $divisions
+            ]);
+        }
+
+        return $tables;
     }
 }
