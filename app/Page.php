@@ -24,6 +24,11 @@ class Page
             "class" => "\\Robin\\ESPN\\Gamecast",
             "pattern" => "#https?://(www\.)?espn\.com/(nfl|college-football)/game/_/gameId/([0-9]+)#i",
             "language" => "en_US"
+        ],
+        "ESPN/Standings" => [
+            "class" => "\\Robin\\ESPN\\Standings",
+            "pattern" => "#https?://(www\.)?espn\.com/(nfl|college-football)/standings#i",
+            "language" => "en_US"
         ]
     ];
     
@@ -86,7 +91,7 @@ class Page
         if (file_exists($filepath)) {
             // If file exists, but created more then 30 seconds ago, we delete it
             $created_time = filectime($filepath);
-            if($created_time && time() > $created_time+300) {
+            if($created_time && time() > $created_time+30000) {
                 unlink($filepath);
             } else {
                 return $filepath;
