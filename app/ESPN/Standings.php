@@ -103,6 +103,7 @@ class Standings {
             $row = [
               "logo" => $team_values["logo"],
               "team" => $team_values["team"]->getShortName(),
+              "composition_values" => $team_values["team"]->getCompositionLinkValues(),
               "rank" => $team_values["team"]->rank,
               "conference" => $team_values["values"]["conference"],
               "overall" => $team_values["values"]["overall"],

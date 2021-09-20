@@ -590,6 +590,7 @@ class Parser
                             $team_img_data[1][0] = "ncaa";
                         }
                         $team_img = 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' . $team_img_data[1][0] . '/500/' . $team_img_data[3][0] . '.png&h=30&w=30';
+                        $team->img = 'https://a.espncdn.com/combiner/i?img=/i/teamlogos/' . $team_img_data[1][0] . '/500/' . $team_img_data[3][0] . '.png&h=150&w=150';
                     } else {
                         $team_img = NULL;
                     }

@@ -2,7 +2,7 @@
 <? foreach ($table_list as $table_id=>$table): ?>
 <h2><?= $table["title"] ?></h2>
 <? foreach ($table["divisions"] as $division): ?>
-<table>
+<table style="width:100%">
   <tr>
     <th><? if (array_key_exists("name", $division)): ?><?= $division["name"] ?><? endif; ?></th>
     <th style="text-align: center;">Рез-т в конф.</th>
@@ -15,7 +15,7 @@
   <tr>
     <td>
       <img src="<?= $row["logo"]?>" width="15" height="15" alt="<?= $row["team"] ?>" />
-      <?= $row["team"] ?>
+      <a href="edit.php?<?=$row["composition_values"]?>"><?=$row["team"]?></a>
       <? if ($row["rank"]): ?>(<?= $row["rank"] ?>)<? endif; ?>
     </td>
     <td style="text-align: center;"><?= $row["conference"] ?></td>
