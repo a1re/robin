@@ -43,7 +43,7 @@ class Conference extends Essence
             if (!$this->import($title)) {
                 throw new Exception("Import from array failed");
             }
-            $this->id = $this->title;
+            $this->setId($this->title);
             return;
         }
         
@@ -56,9 +56,9 @@ class Conference extends Essence
             $abbr = self::makeAbbr($title);
         }
         
+        $this->setId($title);
         $this->title = $title;
         $this->abbr = $abbr;
-        $this->id = $this->title;
     }
     
     /**
