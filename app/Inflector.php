@@ -24,10 +24,32 @@ class Inflector
      */
     public static function simplify(string $str): string
     {
+        $str = self::clean($str);
         $str = str_replace(["'", "`", "′", "&"], "", $str);
         $str = trim(preg_replace("/[^\w]+/", " ", $str));
         $str = mb_convert_case($str, MB_CASE_LOWER, "UTF-8");
         $str = str_replace(" ", "_", $str);
+        return $str;
+    }
+
+    /**
+     * STATIC METHOD
+     * 
+     * Replaces accented characters with their regular latin analogs and removes
+     * html entities.
+     *
+     * @param   string  $str    Input string
+     * @return  string          Output string, without accented characters and
+     *                          html entities
+     */
+    public static function clean(string $str): string
+    {
+        $str = preg_replace("/&#?[a-z0-9]+;/i", "", $str); 
+        $str = strtr(
+            utf8_decode($str),
+            utf8_decode('àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ'),
+            'aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY'
+        );
         return $str;
     }
     

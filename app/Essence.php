@@ -170,7 +170,9 @@ class Essence implements Translatable
      */
     public function setId(string $id): void
     {
+        $this->log(Inflector::clean($id));
         if (strlen(trim($id)) > 0) {
+            //$this->log($id);
             $this->id = $id;
         }
     }

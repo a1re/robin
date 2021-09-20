@@ -48,7 +48,7 @@ class Team extends Essence
             if (!$this->import($full_name)) {
                 throw new Exception("Import from array failed");
             }
-            $this->id = $this->full_name;
+            $this->setId($this->full_name);
             return;
         }
         
@@ -69,11 +69,11 @@ class Team extends Essence
             $abbr = self::makeAbbr($short_name);
         }
         
+        $this->setId($full_name);
         $this->full_name = $full_name;
         $this->short_name = $short_name;
         $this->original_name = $short_name;
         $this->abbr = $abbr;
-        $this->id = $this->full_name;
     }
     
     /**
