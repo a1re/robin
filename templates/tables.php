@@ -29,7 +29,8 @@
 <? endforeach; ?>
 <textarea class="copy" id="table-<?= $table_id ?>">&lt;h2&gt;<?= $table["title"] ?>&lt;/h2&gt;<? foreach ($table["divisions"] as $division): ?>
 
-[table width=&quot;600&quot; colwidth=&quot;50|10|10|10|10|10&quot;<? if (array_key_exists("name", $division)): ?> caption=&quot;<?= $division["name"] ?>&quot;<? endif; ?>]
+[table colwidth=&quot;50|10|10|10|10|10&quot;<? if (array_key_exists("name", $division)): ?> caption=&quot;<?= $division["name"] ?>&quot;<? endif; ?>]
+,Рез-т в конф.,Общий рез-т,Дома,На выезде,Серия
 <? foreach ($division["rows"] as $row): ?>
 &lt;img class=&quot;alignnone wp-image-120212 size-thumbnail&quot; src=&quot;<?= $row["logo"]?>&quot; alt=&quot;&quot; width=&quot;15&quot; height=&quot;15&quot; /&gt; <?= $row["team"] ?><? if ($row["rank"]): ?> (<?= $row["rank"] ?>)<? endif; ?>, <?= $row["conference"] ?>, <?= $row["overall"] ?>, <?= $row["home"] ?>, <?= $row["away"] ?>, <?= $row["streak"] ?>
 
