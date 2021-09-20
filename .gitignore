@@ -1,6 +1,6 @@
 /vendor
 /cache/**/*
-/data/**/*.ini
+/data/**/*
 /logs/*.log
 /test.php
 
