@@ -258,7 +258,7 @@ class FileHandler implements DataStorage
         if (strlen($extension) > 0) {
             // Checking filename extension and adding "ini" if there is no one
             $last_segment = mb_substr($filename, mb_strrpos($filename, "/")+1 ?? 0);
-            // There is a chance that las segment can start with smth like A.J., so
+            // There is a chance that the last segment can start with smth like A.J., so
             // we need to cut it off for proper extenstion search
             if (preg_match("/[a-z]{1}\.\s?[a-z]{1}\./i", mb_substr($last_segment, 0, 5))) {
                 $last_segment = mb_substr($last_segment, 5);
@@ -268,7 +268,7 @@ class FileHandler implements DataStorage
             if (mb_strrpos($last_segment, ".")+1 == strlen($last_segment)) {
                 $last_segment = mb_substr(strlen($last_segment), 0, -1);
             }
-            if (mb_strrpos($last_segment, ".") === false && $last_segment_extension !== $extension) {
+            if (mb_strrpos($last_segment, ".") === false || $last_segment_extension !== $extension) {
                 $filename .= "." . $extension;
             }
         }
