@@ -6,7 +6,7 @@
         <th class="points">2</th>
         <th class="points">3</th>
         <th class="points">4</th>
-        <? if($home["ot"] != NULL): ?><td class="points">OT</td><? endif; ?>
+        <? if($home["ot"] != NULL): ?><th class="points">OT</th><? endif; ?>
         <th class="points">Итог</th>
     </tr>
     <tr>
@@ -29,7 +29,7 @@
     </tr>
 </table>
 <textarea class="copy" id="quarters">[table width=&quot;450&quot;]
-,1,2,3,4,<? if($home["team"]["it"] != NULL): ?>OT,<? endif; ?>Итог
+,1,2,3,4,<? if($home["team"]["ot"] != NULL): ?>OT,<? endif; ?>Итог
 <?=$home["team"]["name"]?>,<?=$home["q1"]?>,<?=$home["q2"]?>,<?=$home["q3"]?>,<?=$home["q4"]?>,<? if($home["ot"] != NULL): ?><?=$home["ot"]?>,<? endif; ?><?=$home["total"]?><?=PHP_EOL?>
 <?=$away["team"]["name"]?>,<?=$away["q1"]?>,<?=$away["q2"]?>,<?=$away["q3"]?>,<?=$away["q4"]?>,<? if($away["ot"] != NULL): ?><?=$away["ot"]?>,<? endif; ?><?=$away["total"]?><?=PHP_EOL?>
 [/table]</textarea>
