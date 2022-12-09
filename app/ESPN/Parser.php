@@ -23,6 +23,8 @@ class Parser
     private $data_handler;
     private $home_team;
     private $away_team;
+
+    private static $app_id = 'espnfitt';
     
     /**
      * Class constructor
@@ -52,6 +54,27 @@ class Parser
         if (!$this->html || !in_array(get_class($this->html), [ "simple_html_dom", "simple_html_dom_node"])) {
             throw new Exception("HTML DOM not received");
         }
+
+        // extracting JSON DATA because ESPN changed the source code
+        
+        $script_tag = $this->html->find("body #".self::$app_id." + script", 0);
+
+        if ($script_tag) {
+            $json_data = substr($script_tag->innertext, strlen('window[\'__'.self::$app_id.'__\']='),-1);
+            $json_data = json_decode($json_data, true);
+
+            if ($json_data && $json_data['page']['content']['gamepackage']) {
+                $this->json_data = $json_data['page']['content']['gamepackage'];
+            }
+        } else {
+            $this->json_data = false;
+        }
+
+        // print_r("<pre>");
+        // print_r(json_encode($this->json_data));
+        // print_r("</pre>");
+        // die();
+
         $this->language = $language;
         $this->setLocale($language);
         Team::setDefaultLanguage($language);
@@ -91,16 +114,12 @@ class Parser
      * @return  DateTime                Scheduled time of event according to time zone
      */
     public function getScheduleTime(string $timezone): ?\DateTime
-    {
-        $game_date_time = $this->html->find(".game-date-time span[data-behavior=date_time]", 0);
-        
-        if ($game_date_time == null) {
+    {        
+        if (!key_exists("dt", $this->json_data["gmStrp"])) {
             return null;
         }
         
-        $datetime = $game_date_time->getAttribute("data-date");
-        
-        if (mb_strlen($datetime) > 0 && $d = new \DateTime($datetime)) {
+        if (mb_strlen($this->json_data["gmStrp"]["dt"]) > 0 && $d = new \DateTime($this->json_data["gmStrp"]["dt"])) {
             $d->setTimezone(new \DateTimeZone($timezone));
             return $d;
         }
@@ -114,13 +133,11 @@ class Parser
      */
     public function getGameTitle(): ?string
     {
-        $game_title = $this->html->find(".game-strip .header", 0);
-        
-        if ($game_title == null) {
+        if (!key_exists("nte", $this->json_data["gmStrp"])) {
             return null;
         }
         
-        return $game_title->plaintext;
+        return $this->json_data["gmStrp"]["nte"];
     }
     
     /**
@@ -131,42 +148,20 @@ class Parser
      */
     private function getTeam(string $marker): Team
     {
+        if (!$this->json_data) {
+            throw new Exception("DATA JSON was not found");
+        }
+
         // Taking team names from HTML
-        $first_name = $this->html->find("div.competitors div." . $marker . " a.team-name .long-name", 0);
-        $last_name = $this->html->find("div.competitors div." . $marker . " a.team-name .short-name", 0);
-        $abbr_name = $this->html->find("div.competitors div." . $marker . " a.team-name .abbrev", 0);
-        $logo_tag = $this->html->find("div.competitors div." . $marker . " div.team-info-logo img.team-logo", 0);
-        $rank = $this->html->find("div.competitors div." . $marker . " div.team-info-wrapper span.rank", 0);
-        
-        $full_name = "";
-        $short_name = "";
-        $abbr = "";
-        
-        if ($first_name != null) {
-            // If block with both city and name was found
-            if ($last_name != null) {
-                $full_name = $first_name->plaintext . ' ' . $last_name->plaintext;
-            }
-            
-            $short_name = $first_name->plaintext;
-        }
-        
-        if ($abbr_name != null) {
-            $abbr = $abbr_name->plaintext;
-        }
+        $full_name = $this->json_data["gmStrp"]["tms"][$marker]["displayName"];
+        $short_name = $this->json_data["gmStrp"]["tms"][$marker]["shortDisplayName"];
+        $abbr = $this->json_data["gmStrp"]["tms"][$marker]["abbrev"];
+        $logo = $this->json_data["gmStrp"]["tms"][$marker]["logo"];
+        $rank = key_exists("rank", $this->json_data["gmStrp"]["tms"][$marker]) ? $this->json_data["gmStrp"]["tms"][$marker]["rank"] : "";
         
         $team = new Team($full_name, $short_name, $abbr);
-        
-        if ($logo_tag != null && is_object($team)) {
-            $img_url = preg_replace('/(h|w)\=(\d{2,3})/', '$1=150', $logo_tag->getAttribute("src"));
-            if (filter_var($img_url, FILTER_VALIDATE_URL)) {
-                $team->img = $img_url;
-            }
-        }
-        
-        if ($rank != null && is_object($team)) {
-            $team->rank = $rank->plaintext;
-        }
+        $team->img = preg_replace('/(h|w)\=(\d{2,3})/', '$1=150', $logo);
+        $team->rank = $rank;
         
         if ($this->locale != $this->language) {
             $team->setDataHandler($this->data_handler);
@@ -184,7 +179,7 @@ class Parser
     public function getHomeTeam(): Team
     {
         if ($this->home_team == null){
-            $this->home_team = $this->getTeam("home");
+            $this->home_team = $this->getTeam(0);
         }
         
         return $this->home_team;
@@ -198,7 +193,7 @@ class Parser
     public function getAwayTeam(): Team
     {
         if ($this->away_team == null){
-            $this->away_team = $this->getTeam("away");
+            $this->away_team = $this->getTeam(1);
         }
         
         return $this->away_team;
@@ -212,34 +207,33 @@ class Parser
      */
     public function getScore(): ?array
     {
-        $score_row = $this->html->find("table#linescore tbody tr");
-        
-        $result = [ ];
-        $keys = [ 0 => "away", 1 => "home" ];
-        
-        if ($score_row !== null) {
-            foreach ($keys as $key=>$team) {
-                if (array_key_exists($key, $score_row) && is_object($score_row[$key])) {
-                    $score_cells = $score_row[$key]->find("td");
-                    foreach ($score_cells as $n => $score) {
-                        $cell_class = $score->getAttribute("class");
-                        if ($cell_class == "team-name") {
-                            //do nothing, skip
-                        } else if ($cell_class == "final-score") {
-                            $result[$team][0] = $score->innertext();
-                        } else {
-                            $result[$team][$n] = $score->innertext();
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (count($result) > 0) {
-            return $result;
-        } else {
+        if (!key_exists("shtChrt", $this->json_data)) {
             return null;
         }
+
+        $result = [
+            "home" => [
+                0 => $this->json_data["shtChrt"]["tms"]["home"]["score"],
+                1 => $this->json_data["shtChrt"]["tms"]["home"]["linescores"][0]["displayValue"],
+                2 => $this->json_data["shtChrt"]["tms"]["home"]["linescores"][1]["displayValue"],
+                3 => $this->json_data["shtChrt"]["tms"]["home"]["linescores"][2]["displayValue"],
+                4 => $this->json_data["shtChrt"]["tms"]["home"]["linescores"][3]["displayValue"]
+            ],
+            "away" => [
+                0 => $this->json_data["shtChrt"]["tms"]["away"]["score"] ?? 0,
+                1 => $this->json_data["shtChrt"]["tms"]["away"]["linescores"][0]["displayValue"] ?? '-',
+                2 => $this->json_data["shtChrt"]["tms"]["away"]["linescores"][1]["displayValue"] ?? '-',
+                3 => $this->json_data["shtChrt"]["tms"]["away"]["linescores"][2]["displayValue"] ?? '-',
+                4 => $this->json_data["shtChrt"]["tms"]["away"]["linescores"][3]["displayValue"] ?? '-',
+            ]
+        ];
+
+        if (key_exists(4, $this->json_data["shtChrt"]["tms"]["home"]["linescores"])) {
+            $result["home"][5] = $this->json_data["shtChrt"]["tms"]["home"]["linescores"][4]["displayValue"] ?? 0;
+            $result["away"][5] = $this->json_data["shtChrt"]["tms"]["away"]["linescores"][4]["displayValue"] ?? 0;
+        }
+        
+        return $result;
     }
     
     /**
@@ -260,15 +254,15 @@ class Parser
         if (empty($team_id)) {
             throw new Exception("Unknown team '" . $team ."'");
         }
-        
-        //Parsing player name with DOM request with $category and $team markers
-        $player_name_query  = "div[data-module=teamLeaders] div[data-stat-key=";
-        $player_name_query .= $category . "Yards] ." . $team . "-leader .player-name";
-        $player_name_tag = $this->html->find($player_name_query, 0);
-        $player_name = $player_name_tag ? $player_name_tag->getAttribute("title") : null;
-        
-        if (empty($player_name)) {
-            throw new Exception("No player name parsed from page");
+
+        $category_key_map = ["passing" => 0, "rushing" => 1, "receiving" => 2];
+        $category_key = $category_key_map[$category];
+
+        $player_name = $this->json_data["gmLdrs"]["ldrs"][$category_key]["players"][$team]["nameFull"] ?? null;
+        $player_stat = $this->json_data["gmLdrs"]["ldrs"][$category_key]["players"][$team]["stats"] ?? null;
+
+        if (!$player_name) {
+            return null;
         }
         
         $player = new Player($player_name);
@@ -278,13 +272,7 @@ class Parser
             $player->setDataHandler($this->data_handler);
             $player->setLocale($this->locale, true);
         }
-        
-        //Parsing player stats with DOM request with $category and $team markers
-        $player_stat_query  = "div[data-module=teamLeaders] div[data-stat-key=";
-        $player_stat_query .= $category . "Yards] ." . $team . "-leader .player-stats";
-        $player_stat_tag = $this->html->find($player_stat_query, 0);
-        $player_stat = $player_stat_tag ? $player_stat_tag->plaintext : null;
-        
+
         // If no stats were found, we just return player instance without them
         if ($player_stat) {
             $player_stat = str_replace("&nbsp;", " ", $player_stat); // remove all unnecessary spaces
@@ -301,14 +289,15 @@ class Parser
             // Parsing indexes form player stats with the same patterns. 
             $patterns = [ "Yards" => "yds?", "TD" => "td", "Int" => "int",
                           "Carries" => "car", "Receptions" => "rec" ];
-              
+
             foreach ($patterns as $name => $pattern) {
-                preg_match('/([0-9]{1,3}) ' . $pattern . '?/i', $player_stat, $matches);
+                preg_match('/([0-9]{1,4}) ' . $pattern . '?/i', $player_stat, $matches);
                 if (count($matches) > 1) {
                     $player->setStats(ucfirst($category) . $name, $matches[1]);
                 }
             }
         }
+
         return $player;
     }
     
@@ -331,103 +320,102 @@ class Parser
      */
     public function getScoringDrives(): array
     {
-        $scoring_summary = $this->html->find("div[data-module=scoringSummary] div.scoring-summary > table tbody",0);
+        $scoring_summary = $this->json_data["scrSumm"]["scrPlayGrps"] ?? false;
         
-        if ($scoring_summary == null) {
-//            throw new Exception("No scoring summary block was found");
+        if (!$scoring_summary || count($scoring_summary) == 0) {
             return [ ];
         }
-        
-        $scoring_summary = $scoring_summary->find("tr");
-        $current_quarter = GameTerms::Q1;
-        $current_home_score = 0;
-        $current_away_score = 0;
+
+        $quarter_key_map = [
+            0 => GameTerms::Q1,
+            1 => GameTerms::Q2,
+            2 => GameTerms::Q3,
+            3 => GameTerms::Q4,
+            4 => GameTerms::OT,
+        ];
+
         $possessing_team = null;
         $defending_team = null;
+        $current_home_score = 0;
+        $current_away_score = 0;
         
         $events = [ ];
-        
-        foreach ($scoring_summary as $e) {
-            if (!is_object($e)) {
-                continue;
-            }
-            
-            // If current row has "highlight" class, it's identifier of the quarter
-            if ($e->getAttribute("class") == "highlight" && $q = $e->find("th.quarter", 0)) {
-                $current_quarter = $this->getQuarterByName(trim($q->innertext));
-                continue; // We skip to next iteration as here will be no score details
-            }
-            
-            $points_scored = 0;
-            $new_home_score = $e->find("td.away-score", 0) ? $e->find("td.away-score", 0)->innertext : 0;
-            $new_away_score = $e->find("td.home-score", 0) ? $e->find("td.home-score", 0)->innertext : 0;
-            
-            $this->setPossessionValues($possessing_team, $defending_team, $points_scored, [
-                "current_home_score" => $current_home_score,
-                "current_away_score" => $current_away_score,
-                "new_home_score" => $new_home_score,
-                "new_away_score" => $new_away_score,
-                "home_team" => $this->getHomeTeam(),
-                "away_team" => $this->getAwayTeam()
-            ]);
-            
-            $scoring_description = $e->find("td.game-details div.table-row div.drives div.headline",0);
-            $scoring_description = $scoring_description ? $scoring_description->innertext : '';
-            
-            $drive = new Drive($possessing_team, $defending_team);
-            $drive->setQuarter($current_quarter);
-            $drive->setScore($new_home_score, $new_away_score);
-            $drive->setResult(true);
-            Decompose::setPossessingTeam($possessing_team);
-            Decompose::setDefendingTeam($defending_team);
-            
-            if (in_array($points_scored, [6, 7, 8])) {
-                if ($extra_point = Decompose::XP($scoring_description)) {
-                    $scoring_description = trim(str_replace([$extra_point->getOrigin(),"(",")"], "", $scoring_description));
-                }
-                $play = Decompose::TD($scoring_description);
-            } elseif ($points_scored == 3) {
-                $play = Decompose::FG($scoring_description);
-            } else {
-                // It's definetely not a touchdown or field goal. We need to parse additional description
-                $score_type = $e->find("td.game-details div.table-row .score-type",0);
-                
-                if ($score_type === null) {
-                    continue; // no description of two points, quite the iteration
-                }
-                
-                if ($score_type->innertext == "SF") {
-                    $play = Decompose::SF($scoring_description);
-                } elseif ($score_type->innertext == "D2P") {
-                    $play = Decompose::D2P($scoring_description);
-                } elseif (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
-                    $play = Decompose::XP($scoring_description);                        
+
+        foreach ($scoring_summary as $quarter_key => $scores) {
+            $quarter = $quarter_key_map[$quarter_key];
+
+            foreach ($scores as $score) {
+
+                $points_scored = 0;
+                $new_home_score = $score["homeScore"];
+                $new_away_score = $score["awayScore"];
+
+                $this->setPossessionValues($possessing_team, $defending_team, $points_scored, [
+                    "current_home_score" => $current_home_score,
+                    "current_away_score" => $current_away_score,
+                    "new_home_score" => $new_home_score,
+                    "new_away_score" => $new_away_score,
+                    "home_team" => $this->getHomeTeam(),
+                    "away_team" => $this->getAwayTeam()
+                ]);
+
+                $scoring_description = $score["text"];
+
+                $drive = new Drive($possessing_team, $defending_team);
+                $drive->setQuarter($quarter);
+                $drive->setScore($new_home_score, $new_away_score);
+                $drive->setResult(true);
+                Decompose::setPossessingTeam($possessing_team);
+                Decompose::setDefendingTeam($defending_team);
+
+                if (in_array($points_scored, [6, 7, 8])) {
+                    if ($extra_point = Decompose::XP($scoring_description)) {
+                        $scoring_description = trim(str_replace([$extra_point->getOrigin(),"(",")"], "", $scoring_description));
+                    }
+                    $play = Decompose::TD($scoring_description);
+                } elseif ($points_scored == 3) {
+                    $play = Decompose::FG($scoring_description);
                 } else {
-                    continue;
+                    // It's definetely not a touchdown or field goal. We need to parse additional description
+                    $score_type = $score["typeAbbreviation"];
+                    
+                    if ($score_type === null) {
+                        continue; // no description of two points, quit the iteration
+                    }
+                    
+                    if ($score_type->innertext == "SF") {
+                        $play = Decompose::SF($scoring_description);
+                    } elseif ($score_type->innertext == "D2P") {
+                        $play = Decompose::D2P($scoring_description);
+                    } elseif (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
+                        $play = Decompose::XP($scoring_description);                        
+                    } else {
+                        continue;
+                    }
                 }
+                
+                if (isset($play)) {
+                    $play->setQuarter($quarter);
+                    $drive->addPlay($play);
+                }
+                
+                if (isset($extra_point)) {
+                    $extra_point->setQuarter($quarter);
+                    $drive->addPlay($extra_point);
+                }
+                
+                if ($this->locale != $this->language) {
+                    $drive->setDataHandler($this->data_handler);
+                    $drive->setLocale($this->locale);
+                }
+                $events[] = $drive;
+                
+                $current_away_score = $new_away_score;
+                $current_home_score = $new_home_score;
+                unset($play, $extra_point);
             }
-            
-            if (isset($play)) {
-                $play->setQuarter($current_quarter);
-                $drive->addPlay($play);
-            }
-            
-            if (isset($extra_point)) {
-                $extra_point->setQuarter($current_quarter);
-                $drive->addPlay($extra_point);
-            }
-            
-            if ($this->locale != $this->language) {
-                $drive->setDataHandler($this->data_handler);
-                $drive->setLocale($this->locale);
-            }
-            $events[] = $drive;
-            
-            $current_away_score = $new_away_score;
-            $current_home_score = $new_home_score;
-            unset($play, $extra_point);
         }
-        
+
         return $events;
     }
 
