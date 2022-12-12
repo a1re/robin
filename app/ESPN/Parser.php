@@ -377,17 +377,16 @@ class Parser
                     $play = Decompose::FG($scoring_description);
                 } else {
                     // It's definetely not a touchdown or field goal. We need to parse additional description
-                    $score_type = $score["typeAbbreviation"];
                     
-                    if ($score_type === null) {
+                    if ($score["typeAbbreviation"] === '') {
                         continue; // no description of two points, quit the iteration
                     }
                     
-                    if ($score_type->innertext == "SF") {
+                    if ($score["typeAbbreviation"] == "SF") {
                         $play = Decompose::SF($scoring_description);
-                    } elseif ($score_type->innertext == "D2P") {
+                    } elseif ($score["typeAbbreviation"] == "D2P") {
                         $play = Decompose::D2P($scoring_description);
-                    } elseif (in_array($score_type->innertext, ["XP", "X2P", "2PTC"])) {
+                    } elseif (in_array($score["typeAbbreviation"], ["XP", "X2P", "2PTC"])) {
                         $play = Decompose::XP($scoring_description);                        
                     } else {
                         continue;
