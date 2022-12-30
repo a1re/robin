@@ -70,11 +70,6 @@ class Parser
             $this->json_data = false;
         }
 
-        // print_r("<pre>");
-        // print_r(json_encode($this->json_data));
-        // print_r("</pre>");
-        // die();
-
         $this->language = $language;
         $this->setLocale($language);
         Team::setDefaultLanguage($language);
@@ -228,11 +223,28 @@ class Parser
             ]
         ];
 
-        if (key_exists(4, $this->json_data["shtChrt"]["tms"]["home"]["linescores"])) {
-            $result["home"][5] = $this->json_data["shtChrt"]["tms"]["home"]["linescores"][4]["displayValue"] ?? 0;
-            $result["away"][5] = $this->json_data["shtChrt"]["tms"]["away"]["linescores"][4]["displayValue"] ?? 0;
+        // checking overtimes
+
+        $first_overtime_key = 4;
+        while (true) {
+            if (!key_exists($first_overtime_key, $this->json_data["shtChrt"]["tms"]["home"]["linescores"])) {
+                break;
+            }
+
+            if (!key_exists(5, $result["home"])) {
+                $result["home"][5] = 0;
+            }
+
+            if (!key_exists(5, $result["away"])) {
+                $result["away"][5] = 0;
+            }
+
+            $result["home"][5] += $this->json_data["shtChrt"]["tms"]["home"]["linescores"][$first_overtime_key]["displayValue"] ?? 0;
+            $result["away"][5] += $this->json_data["shtChrt"]["tms"]["away"]["linescores"][$first_overtime_key]["displayValue"] ?? 0;
+
+            $first_overtime_key++;
         }
-        
+
         return $result;
     }
     
@@ -332,6 +344,12 @@ class Parser
             2 => GameTerms::Q3,
             3 => GameTerms::Q4,
             4 => GameTerms::OT,
+            5 => GameTerms::OT,
+            6 => GameTerms::OT,
+            7 => GameTerms::OT,
+            8 => GameTerms::OT,
+            9 => GameTerms::OT,
+            10 => GameTerms::OT,
         ];
 
         $possessing_team = null;
@@ -376,9 +394,9 @@ class Parser
                 } elseif ($points_scored == 3) {
                     $play = Decompose::FG($scoring_description);
                 } else {
-                    // It's definetely not a touchdown or field goal. We need to parse additional description
-                    
-                    if ($score["typeAbbreviation"] === '') {
+                    // It's definetely not a touchdown or a field goal. We need to parse additional description
+
+                    if (!key_exists("typeAbbreviation", $score) || $score["typeAbbreviation"] === '') {
                         continue; // no description of two points, quit the iteration
                     }
                     
